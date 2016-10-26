@@ -11,6 +11,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by User on 26.10.2016.
  */
@@ -72,9 +75,11 @@ public class TestClass extends AppCompatActivity {
 
                 JSONObject jsonObject = new JSONObject();
                 try{
-                    String name = "Иван";
-                    jsonObject.put("name", name);
-                    String json = jsonObject.toString();
+                    Date date = new Date();
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+                    String dateString = sdf.format(date);
+                    jsonObject.put("name", date);
+                    String json = sdf.format(jsonObject.get("name"));
                     boolean nameExists = jsonObject.has("name");
                     boolean surnameExists = jsonObject.has("surname");
                     Log.d("json", json);
