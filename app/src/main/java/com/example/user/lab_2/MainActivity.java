@@ -171,6 +171,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         TextView t = (TextView)findViewById(R.id.testText);
         t.setText(dateString);
 
+        //
+
     }
 
     @Override
