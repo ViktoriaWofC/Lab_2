@@ -1,18 +1,43 @@
 package com.example.user.lab_2;
 
+import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
+import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import static android.media.MediaRecorder.AudioEncoder.AAC;
+import static android.media.MediaRecorder.AudioSource.MIC;
+import static android.media.MediaRecorder.OutputFormat.MPEG_4;
 
 /**
  * Created by User on 26.10.2016.
@@ -22,6 +47,12 @@ public class TestClass extends AppCompatActivity {
 
     private TextView tv;
     private Button tb;
+    private Button tb2;
+    MediaRecorder mr;
+    private static final int READ_BLOCK_SIZE = 100;
+
+    final static int RQS_RECORDING = 1;
+    Uri savedUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +104,7 @@ public class TestClass extends AppCompatActivity {
 
                 } catch (JSONException e){}*/
 
+                /*
                 JSONObject jsonObject = new JSONObject();
                 try{
                     Date date = new Date();
@@ -84,13 +116,142 @@ public class TestClass extends AppCompatActivity {
                     boolean surnameExists = jsonObject.has("surname");
                     Log.d("json", json);
                     Log.d("json", "Имя:"+ nameExists + ", Фамилия:" + surnameExists);
-                } catch (JSONException e){}
+                } catch (JSONException e){}*/
+
+                Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+                startActivityForResult(intent, RQS_RECORDING);
+
+                /*
+                try{
+                    JSONObject jsonObject = new JSONObject("{\"lada_car\":\"type\"}}");
+                    JSONObject kalina = jsonObject.getJSONObject("lada_car");
+                    Log.d("json", kalina.getString("type"));
+                    String json = jsonObject.toString();
+
+                } catch (JSONException e){}*/
+
 
             }
         });
 
+        tb2 = (Button)findViewById(R.id.testBut2);
+        tb2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //mr.stop();
+                tv.setText(savedUri.getPath());
+                MediaPlayer mp = MediaPlayer.create(TestClass.this,savedUri);
+                mp.start();
+
+                ////
+                //SoundPool soundPool = new SoundPool(1, AudioManager.STREAM_MUSIC, 0);
+                //soundPool.load(savedUri.getPath(),0);
+
+                /*
+
+                try {
+
+                    String str = getRealPathFromURI(TestClass.this,savedUri);
+                    tv.setText(str);
+                    File f  = new File(str);
+                    FileInputStream fileInputStream = new FileInputStream(f);
+                    fileInputStream.close();
+                    //FileInputStream fileInputStream = openFileInput(savedUri.getPath());
+                    /*InputStreamReader reader = new InputStreamReader(fileInputStream);
+
+                    char[] inputBuffer = new char[READ_BLOCK_SIZE];
+                    String s = "";
+                    int charRead;
+
+                    // цикл читает данные из файла,
+                    while ((charRead = reader.read(inputBuffer)) != -1) {
+                        // конвертируем char в строку
+                        //String rString = String.copyValueOf(inputBuffer, 0, charRead);
+                        //s += rString;
+                    }
+                    reader.close();
+                    //tv.setText(s);
+                    */
+                    // создаем всплывающее окно c результатом выволнения чтения из файла
+                /*    Toast.makeText(getBaseContext(), "Чтение из файла успешно проведено!",
+                            Toast.LENGTH_LONG).show();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(getBaseContext(), "errrrrrrrrrrr!",
+                            Toast.LENGTH_LONG).show();
+                }
+
+                //Toast.makeText(getBaseContext(), "werwr",
+                       // Toast.LENGTH_LONG).show();
+                */
+
+                int frequency = 11025/2;
+                int channelConfiguration = AudioFormat.CHANNEL_CONFIGURATION_MONO;
+                int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+                String str = getRealPathFromURI(TestClass.this,savedUri);
+                String[] s = str.split("/");
+                tv.setText(s[s.length-1]);
+                String ss = "";
+                for(int i = 0; i< (s.length-1);i++)
+                    ss += s[i];
+                //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
+                File file = new File(ss,s[s.length-1]);
+                // Массив типа short для хранения аудиоданных (звук 16-битный,
+                // поэтому выделяем по 2 байта на значение)
+                int audioLength = (int)(file.length()/2);
+                short[] audio = new short[audioLength];
+
+                try {
+
+                    InputStream is = new FileInputStream(file);
+                    BufferedInputStream bis = new BufferedInputStream(is);
+                    DataInputStream dis = new DataInputStream(bis);
+                    int i = 0;
+                    while (dis.available() > 0) {
+                        audio[audioLength] = dis.readShort(); i++;
+                    }
+                    // Закрытие входящих потоков. dis.close();
+                    // Создание объекта AudioTrack и проигрывание звука с его помощью
+
+                    AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, frequency, channelConfiguration, audioEncoding,
+                            audioLength,   AudioTrack.MODE_STREAM);
+                    audioTrack.play();
+                    audioTrack.write(audio, 0, audioLength);
+
+                } catch (Throwable t) {
+                    Toast.makeText(getBaseContext(), "errrrrrrrrrrr!",
+                            Toast.LENGTH_LONG).show();
+                }
 
 
+            }
+        });
+
+    }
+
+    public String getRealPathFromURI(Context context, Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == RQS_RECORDING) {
+            savedUri = data.getData();
+            Toast.makeText(TestClass.this,
+                    "Saved: " + savedUri.getPath(), Toast.LENGTH_LONG).show();
+        }
     }
 
 }

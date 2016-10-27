@@ -186,6 +186,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         mSimpleFirechatDatabaseReference.child("meetings")
                 .push().setValue(meeting);
         mMsgEditText.setText("");
+
     }
 
     @Override
