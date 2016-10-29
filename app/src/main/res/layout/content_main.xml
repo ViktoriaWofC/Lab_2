@@ -20,6 +20,18 @@
         android:layout_height="wrap_content"
         android:text="Hello World!" />
 
+    <Button
+        android:id="@+id/testBut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="go"/>
+
+    <Button
+        android:id="@+id/testBut2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="go Record"/>
+
     <EditText
         android:id="@+id/editText"
         android:layout_width="match_parent"

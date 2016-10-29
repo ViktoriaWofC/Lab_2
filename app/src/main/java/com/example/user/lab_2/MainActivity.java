@@ -1,7 +1,15 @@
 package com.example.user.lab_2;
 
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -14,6 +22,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -33,10 +42,25 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+import static com.example.user.lab_2.TestClass.RQS_RECORDING;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
@@ -52,6 +76,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private FirebaseAuth mFirebaseAuth;
     private FirebaseUser mFirechatUser;
     private String mUsername;
+
+    /////
+    private static final int READ_BLOCK_SIZE = 100;
+    Uri savedUri;
 
 
     public static class FirechatMsgViewHolder extends RecyclerView.ViewHolder {
@@ -171,9 +199,138 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         TextView t = (TextView)findViewById(R.id.testText);
         t.setText(dateString);
 
-        //
+        ////////////////////////////////////////////////
+        Button tb = (Button)findViewById(R.id.testBut);
+        tb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                 Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+                startActivityForResult(intent, RQS_RECORDING);
+            }
+        });
+
+        Button tb2 = (Button)findViewById(R.id.testBut2);
+        tb2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //mr.stop();
+                TextView t = (TextView)findViewById(R.id.testText);
+                t.setText(savedUri.getPath());
+                MediaPlayer mp = MediaPlayer.create(MainActivity.this,savedUri);
+                mp.start();
+
+
+                int frequency = 11025/2;
+                int channelConfiguration = AudioFormat.CHANNEL_CONFIGURATION_MONO;
+                int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+                String str = getRealPathFromURI(MainActivity.this,savedUri);
+                String[] s = str.split("/");
+
+                String ss = "";
+                for(int i = 0; i< (s.length-1);i++)
+                    ss += s[i]+ "/";
+
+                //String transferFile = "transferimage.jpg";
+                File extDir = getExternalFilesDir(null);
+                File file = new File(extDir, s[s.length-1]);
+                //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
+                //@NonNull
+                //File file = new File(savedUri);// File(str);//ss,s[s.length-1]);
+
+                t.setText(s[s.length-1]);
+
+                // Массив типа short для хранения аудиоданных (звук 16-битный,
+                // поэтому выделяем по 2 байта на значение)
+                int audioLength = (int)(file.length()/2);
+                short[] audio = new short[audioLength];
+
+                //InputStream is = null;
+                try {
+
+                    InputStream is = new FileInputStream(file);//new BufferedInputStream(new FileInputStream(file));//new FileInputStream(file);
+                    /*BufferedInputStream bis = new BufferedInputStream(is);
+                    DataInputStream dis = new DataInputStream(bis);
+                    int i = 0;
+                    while (dis.available() > 0) {
+                        audio[audioLength] = dis.readShort(); i++;
+                    }
+                    // Закрытие входящих потоков. dis.close();
+                    // Создание объекта AudioTrack и проигрывание звука с его помощью
+
+                    AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, frequency, channelConfiguration, audioEncoding,
+                            audioLength,   AudioTrack.MODE_STREAM);
+                    audioTrack.play();
+                    audioTrack.write(audio, 0, audioLength);*/
+                    is.close();
+                    Toast.makeText(getBaseContext(), "!!!!!!",
+                            Toast.LENGTH_LONG).show();
+
+                } catch (Throwable ee) {
+                    Toast.makeText(getBaseContext(), "errrrrrrrrrrr!",
+                            Toast.LENGTH_LONG).show();
+                } /*finally
+                {
+                    if (is != null) {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }*/
+
+
+            }
+        });
 
     }
+
+    private void uploadFile(Uri fileUri) {
+        // create upload service client
+        FileUploadService service =
+                ServiceGenerator.createService(FileUploadService.class);
+
+        // https://github.com/iPaulPro/aFileChooser/blob/master/aFileChooser/src/com/ipaulpro/afilechooser/utils/FileUtils.java
+
+
+        String str = getRealPathFromURI(MainActivity.this,savedUri);
+        String[] s = str.split("/");
+
+        String ss = "";
+        for(int i = 0; i< (s.length-1);i++)
+            ss += s[i];
+        //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
+        File file = new File(ss,s[s.length-1]);
+
+        // create RequestBody instance from file
+        RequestBody requestFile =
+                RequestBody.create(MediaType.parse("multipart/form-data"), file);
+
+        // MultipartBody.Part is used to send also the actual file name
+        MultipartBody.Part body =
+                MultipartBody.Part.createFormData("picture", file.getName(), requestFile);
+
+        // add another part within the multipart request
+        String descriptionString = "hello, this is description speaking";
+        RequestBody description =
+                RequestBody.create(
+                        MediaType.parse("multipart/form-data"), descriptionString);
+
+        // finally, execute the request
+        Call<ResponseBody> call = service.upload(description, body);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.v("Upload", "success");
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e("Upload error:", t.getMessage());
+            }
+        });
+    }
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -181,12 +338,46 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     }
 
     public void onClickSend(View v){
+
+        String str = getRealPathFromURI(MainActivity.this,savedUri);
+        String[] s = str.split("/");
+
+        String ss = "";
+        for(int i = 0; i< (s.length-1);i++)
+            ss += s[i];
+        //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
+        File file = new File(ss,s[s.length-1]);
+
         Meeting meeting = new
-                Meeting(mMsgEditText.getText().toString(), mUsername);
+                Meeting(mMsgEditText.getText().toString(), mUsername,file);
         mSimpleFirechatDatabaseReference.child("meetings")
                 .push().setValue(meeting);
         mMsgEditText.setText("");
 
+    }
+
+    public String getRealPathFromURI(Context context, Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == RQS_RECORDING) {
+            savedUri = data.getData();
+            Toast.makeText(MainActivity.this,
+                    "Saved: " + savedUri.getPath(), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
