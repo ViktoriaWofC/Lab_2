@@ -29,9 +29,11 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -140,51 +142,11 @@ public class TestClass extends AppCompatActivity {
             public void onClick(View view) {
                 //mr.stop();
                 tv.setText(savedUri.getPath());
-                MediaPlayer mp = MediaPlayer.create(TestClass.this,savedUri);
-                mp.start();
+                //MediaPlayer mp = MediaPlayer.create(TestClass.this,savedUri);
+                //mp.start();
 
-                ////
-                //SoundPool soundPool = new SoundPool(1, AudioManager.STREAM_MUSIC, 0);
-                //soundPool.load(savedUri.getPath(),0);
 
-                /*
-
-                try {
-
-                    String str = getRealPathFromURI(TestClass.this,savedUri);
-                    tv.setText(str);
-                    File f  = new File(str);
-                    FileInputStream fileInputStream = new FileInputStream(f);
-                    fileInputStream.close();
-                    //FileInputStream fileInputStream = openFileInput(savedUri.getPath());
-                    /*InputStreamReader reader = new InputStreamReader(fileInputStream);
-
-                    char[] inputBuffer = new char[READ_BLOCK_SIZE];
-                    String s = "";
-                    int charRead;
-
-                    // цикл читает данные из файла,
-                    while ((charRead = reader.read(inputBuffer)) != -1) {
-                        // конвертируем char в строку
-                        //String rString = String.copyValueOf(inputBuffer, 0, charRead);
-                        //s += rString;
-                    }
-                    reader.close();
-                    //tv.setText(s);
-                    */
-                    // создаем всплывающее окно c результатом выволнения чтения из файла
-                /*    Toast.makeText(getBaseContext(), "Чтение из файла успешно проведено!",
-                            Toast.LENGTH_LONG).show();
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(getBaseContext(), "errrrrrrrrrrr!",
-                            Toast.LENGTH_LONG).show();
-                }
-
-                //Toast.makeText(getBaseContext(), "werwr",
-                       // Toast.LENGTH_LONG).show();
-                */
+                //////////////////////
 
                 int frequency = 11025/2;
                 int channelConfiguration = AudioFormat.CHANNEL_CONFIGURATION_MONO;
@@ -196,38 +158,80 @@ public class TestClass extends AppCompatActivity {
                 for(int i = 0; i< (s.length-1);i++)
                     ss += s[i];
                 //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
-                File file = new File(ss,s[s.length-1]);
+                File file = new File(str);//new File(ss,s[s.length-1]);
                 // Массив типа short для хранения аудиоданных (звук 16-битный,
                 // поэтому выделяем по 2 байта на значение)
-                int audioLength = (int)(file.length()/2);
-                short[] audio = new short[audioLength];
+                //int audioLength = (int)(file.length()/2);
+                //short[] audio = new short[audioLength];
+                int audioLength = (int)(file.length());
+                byte[] audio = new byte[audioLength];
 
                 try {
-
                     InputStream is = new FileInputStream(file);
-                    BufferedInputStream bis = new BufferedInputStream(is);
-                    DataInputStream dis = new DataInputStream(bis);
-                    int i = 0;
-                    while (dis.available() > 0) {
-                        audio[audioLength] = dis.readShort(); i++;
-                    }
-                    // Закрытие входящих потоков. dis.close();
-                    // Создание объекта AudioTrack и проигрывание звука с его помощью
-
-                    AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, frequency, channelConfiguration, audioEncoding,
-                            audioLength,   AudioTrack.MODE_STREAM);
-                    audioTrack.play();
-                    audioTrack.write(audio, 0, audioLength);
-
+                    is.read(audio);
+                    is.close();
                 } catch (Throwable t) {
-                    Toast.makeText(getBaseContext(), "errrrrrrrrrrr!",
+                    Toast.makeText(getBaseContext(), "err 1!",
                             Toast.LENGTH_LONG).show();
+                    Log.e("teg","errrr 1!",t);
                 }
 
+
+
+                String exts = Environment.getExternalStorageDirectory().getAbsolutePath()+"/record";///storage/emulated/0
+                tv.setText(exts);
+                if(isExternalStorageReadable()&& isExternalStorageWritable())
+                {
+                    File f = new File(exts);
+                    if(!f.exists())
+                        f.mkdirs();
+                    tv.setText(f.getName());
+
+                    try {
+                    OutputStream os = new FileOutputStream(exts+"/rec0.amr");
+                        os.write(audio, 0, audio.length);
+                    os.close();
+
+                        MediaPlayer mp1 = MediaPlayer.create(TestClass.this,Uri.fromFile(new File(exts+"/rec0.amr")));
+                        mp1.start();
+
+
+
+
+
+                } catch (Throwable t) {
+                    Toast.makeText(getBaseContext(), "err 2!",
+                            Toast.LENGTH_LONG).show();
+                    Log.e("teg","errr 2!",t);
+                }
+
+
+                }
+                else Toast.makeText(getBaseContext(), R.string.noSD,
+                        Toast.LENGTH_LONG).show();
 
             }
         });
 
+    }
+
+    /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    /* Checks if external storage is available to at least read */
+    public boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        }
+        return false;
     }
 
     public String getRealPathFromURI(Context context, Uri contentUri) {
