@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,9 +27,17 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -63,7 +72,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         public TextView nameTextView;
         public TextView userTextView;
         public TextView stringTextView;
-
 
         public FirechatMeetingViewHolder(View v) {
             super(v);
@@ -155,6 +163,40 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
         mMeetingRecyclerView.setAdapter(mFirebaseAdapter);
 
+        t = (TextView)findViewById(R.id.testText);
+
+
+        ////
+        mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Participant pat = (Participant)dataSnapshot.getValue(Participant.class);//Participant.class);
+                if(pat == null)t.setText("no");
+                else t.setText("yes "+String.valueOf(dataSnapshot.getValue()) +" \n"+ pat.getPost());
+
+                /*try {
+                    //JSONObject jsonObject = new JSONObject(String.valueOf(dataSnapshot.getValue()));
+                    //GsonBuilder builder = new GsonBuilder();
+                    //Gson gson = builder.create();
+                    //Participant pat = gson.fromJson(String.valueOf(dataSnapshot.getValue()), Participant.class);
+                    //t.setText("yes "+pat);
+                    t.setText("yes "+String.valueOf(dataSnapshot.getValue()));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    t.setText("no");
+                }*/
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Getting Post failed, log a message
+                Log.w("tag", "loadPost:onCancelled", databaseError.toException());
+
+            }
+        });
+
+
         ////////////////////////////////////////////
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
@@ -178,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         String dateString = sdf.format(date);
 
 
-        t = (TextView)findViewById(R.id.testText);
+
         t.setText(dateString);
 
         ////////////////////////////////////////////////
@@ -206,14 +248,24 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     }
 
 
+    public void checkParticipant(String name){
+        Participant pat = new Participant("2n","1n","3n","direct");
+        //GsonBuilder builder = new GsonBuilder();
+        //Gson gson = builder.create();
+        //mSimpleFirebaseDatabaseReference.child("participant").push().setValue(gson.toJson(pat));
+
+        mSimpleFirebaseDatabaseReference.child("participant").push().setValue(pat);
+
+    }
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
     }
 
-    public void onClickSTest(View v){
-
+    public void onClickTest(View v){
+        checkParticipant("Slava");
     }
 
     public void onClickSend(View v){
