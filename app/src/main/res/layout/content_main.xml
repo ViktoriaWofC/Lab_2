@@ -45,6 +45,13 @@
         android:text="Send"
         android:onClick="onClickSend"/>
 
+    <Button
+        android:id="@+id/button_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="test"
+        android:onClick="onClickTest"/>
+
 
     <ProgressBar
         android:id="@+id/progressBar"

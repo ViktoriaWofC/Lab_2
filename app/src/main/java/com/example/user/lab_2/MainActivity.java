@@ -1,97 +1,75 @@
 package com.example.user.lab_2;
 
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import de.hdodenhof.circleimageview.CircleImageView;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 import static com.example.user.lab_2.TestClass.RQS_RECORDING;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
     /////
-    private DatabaseReference mSimpleFirechatDatabaseReference;
+    private DatabaseReference mSimpleFirebaseDatabaseReference;
     private FirebaseRecyclerAdapter mFirebaseAdapter;
-    private RecyclerView mMessageRecyclerView;
+    private RecyclerView mMeetingRecyclerView;
     private LinearLayoutManager mLinearLayoutManager;
     private ProgressBar mProgressBar;
-    private EditText mMsgEditText;
+    private EditText mMeetingEditText;
     /////
     private GoogleApiClient mGoogleApiClient;
     private FirebaseAuth mFirebaseAuth;
-    private FirebaseUser mFirechatUser;
+    private FirebaseUser mFirebaseUser;
     private String mUsername;
+
+    private TextView t;
 
     /////
     private static final int READ_BLOCK_SIZE = 100;
     Uri savedUri;
 
 
-    public static class FirechatMsgViewHolder extends RecyclerView.ViewHolder {
+    public static class FirechatMeetingViewHolder extends RecyclerView.ViewHolder {
 
         public TextView nameTextView;
         public TextView userTextView;
+        public TextView stringTextView;
 
 
-        public FirechatMsgViewHolder(View v) {
+        public FirechatMeetingViewHolder(View v) {
             super(v);
             nameTextView = (TextView) itemView.findViewById(R.id.nameTextView);
             userTextView = (TextView) itemView.findViewById(R.id.userTextView);
+            stringTextView = (TextView) itemView.findViewById(R.id.stringTextView);
         }
 
     }
@@ -117,39 +95,43 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         //////////////////////////////////////////////////////////////////////////
 
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
-        mMessageRecyclerView = (RecyclerView) findViewById(R.id.messageRecyclerView);
+        mMeetingRecyclerView = (RecyclerView) findViewById(R.id.messageRecyclerView);
         mLinearLayoutManager = new LinearLayoutManager(this);
         mLinearLayoutManager.setStackFromEnd(true);
-        mMessageRecyclerView.setLayoutManager(mLinearLayoutManager);
-        mMsgEditText = (EditText)findViewById(R.id.editText);
+        mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
+        mMeetingEditText = (EditText)findViewById(R.id.editText);
 
-        mSimpleFirechatDatabaseReference = FirebaseDatabase.getInstance().getReference();
+        mSimpleFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
 
 
         mFirebaseAdapter = new FirebaseRecyclerAdapter(
                 Meeting.class,
                 R.layout.chat_message,
-                FirechatMsgViewHolder.class,
-                mSimpleFirechatDatabaseReference.child("meetings")) {
+                FirechatMeetingViewHolder.class,
+                mSimpleFirebaseDatabaseReference.child("meetings")) {
 
             @Override
             protected void populateViewHolder(RecyclerView.ViewHolder viewHolder, Object model, int position) {
 
-                FirechatMsgViewHolder fviewHolder = (FirechatMsgViewHolder)viewHolder;
+                FirechatMeetingViewHolder fviewHolder = (FirechatMeetingViewHolder)viewHolder;
                 Meeting meeting = (Meeting)model;
 
                 mProgressBar.setVisibility(ProgressBar.INVISIBLE);
+                //if(meeting.getNames().equals("Виктория Сах")){
                 fviewHolder.nameTextView.setText(meeting.getName());
                 fviewHolder.userTextView.setText(meeting.getNames());
+                //}
+               // fviewHolder.stringTextView.setText(meeting.getFile());
 
             }
 
             //@Override
-            protected void tpopulateViewHolder(FirechatMsgViewHolder viewHolder, Meeting meeting, int position) {
+            protected void tpopulateViewHolder(FirechatMeetingViewHolder viewHolder, Meeting meeting, int position) {
 
                 mProgressBar.setVisibility(ProgressBar.INVISIBLE);
                 viewHolder.nameTextView.setText(meeting.getName());
                 viewHolder.userTextView.setText(meeting.getNames());
+                //viewHolder.stringTextView.setText(meeting.getFile());
             }
 
         };
@@ -165,13 +147,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 int lastVisiblePosition = mLinearLayoutManager.findLastCompletelyVisibleItemPosition();
 
                 if (lastVisiblePosition == -1 ||  (positionStart >= (chatMessageCount - 1) && lastVisiblePosition == (positionStart - 1))) {
-                    mMessageRecyclerView.scrollToPosition(positionStart);
+                    mMeetingRecyclerView.scrollToPosition(positionStart);
                 }
             }
         });
 
-        mMessageRecyclerView.setLayoutManager(mLinearLayoutManager);
-        mMessageRecyclerView.setAdapter(mFirebaseAdapter);
+        mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
+        mMeetingRecyclerView.setAdapter(mFirebaseAdapter);
 
         ////////////////////////////////////////////
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -180,13 +162,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 .build();
 
         mFirebaseAuth = FirebaseAuth.getInstance();
-        mFirechatUser = mFirebaseAuth.getCurrentUser();
-        if (mFirechatUser == null) {
+        mFirebaseUser = mFirebaseAuth.getCurrentUser();
+        if (mFirebaseUser == null) {
             startActivity(new Intent(this, AuthorizationActivity.class));
             finish();
             return;
         } else {
-            mUsername = mFirechatUser.getDisplayName();
+            mUsername = mFirebaseUser.getDisplayName();
         }
 
         //////////////////////////////
@@ -196,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         String dateString = sdf.format(date);
 
 
-        TextView t = (TextView)findViewById(R.id.testText);
+        t = (TextView)findViewById(R.id.testText);
         t.setText(dateString);
 
         ////////////////////////////////////////////////
@@ -213,123 +195,16 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         tb2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //mr.stop();
-                TextView t = (TextView)findViewById(R.id.testText);
-                t.setText(savedUri.getPath());
-                MediaPlayer mp = MediaPlayer.create(MainActivity.this,savedUri);
-                mp.start();
-
-
-                int frequency = 11025/2;
-                int channelConfiguration = AudioFormat.CHANNEL_CONFIGURATION_MONO;
-                int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-                String str = getRealPathFromURI(MainActivity.this,savedUri);
-                String[] s = str.split("/");
-
-                String ss = "";
-                for(int i = 0; i< (s.length-1);i++)
-                    ss += s[i]+ "/";
-
-                //String transferFile = "transferimage.jpg";
-                File extDir = getExternalFilesDir(null);
-                File file = new File(extDir, s[s.length-1]);
-                //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
-                //@NonNull
-                //File file = new File(savedUri);// File(str);//ss,s[s.length-1]);
-
-                t.setText(s[s.length-1]);
-
-                // Массив типа short для хранения аудиоданных (звук 16-битный,
-                // поэтому выделяем по 2 байта на значение)
-                int audioLength = (int)(file.length()/2);
-                short[] audio = new short[audioLength];
-
-                //InputStream is = null;
-                try {
-
-                    InputStream is = new FileInputStream(file);//new BufferedInputStream(new FileInputStream(file));//new FileInputStream(file);
-                    /*BufferedInputStream bis = new BufferedInputStream(is);
-                    DataInputStream dis = new DataInputStream(bis);
-                    int i = 0;
-                    while (dis.available() > 0) {
-                        audio[audioLength] = dis.readShort(); i++;
-                    }
-                    // Закрытие входящих потоков. dis.close();
-                    // Создание объекта AudioTrack и проигрывание звука с его помощью
-
-                    AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, frequency, channelConfiguration, audioEncoding,
-                            audioLength,   AudioTrack.MODE_STREAM);
-                    audioTrack.play();
-                    audioTrack.write(audio, 0, audioLength);*/
-                    is.close();
-                    Toast.makeText(getBaseContext(), "!!!!!!",
-                            Toast.LENGTH_LONG).show();
-
-                } catch (Throwable ee) {
-                    Toast.makeText(getBaseContext(), "errrrrrrrrrrr!",
-                            Toast.LENGTH_LONG).show();
-                } /*finally
-                {
-                    if (is != null) {
-                        try {
-                            is.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }*/
-
+                String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
+                String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
+                Uri uri = AudioAttach.getAudioFromString(MainActivity.this,name,audioStr);
+                AudioAttach.playAudio(MainActivity.this,uri);
 
             }
         });
 
     }
 
-    private void uploadFile(Uri fileUri) {
-        // create upload service client
-        FileUploadService service =
-                ServiceGenerator.createService(FileUploadService.class);
-
-        // https://github.com/iPaulPro/aFileChooser/blob/master/aFileChooser/src/com/ipaulpro/afilechooser/utils/FileUtils.java
-
-
-        String str = getRealPathFromURI(MainActivity.this,savedUri);
-        String[] s = str.split("/");
-
-        String ss = "";
-        for(int i = 0; i< (s.length-1);i++)
-            ss += s[i];
-        //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
-        File file = new File(ss,s[s.length-1]);
-
-        // create RequestBody instance from file
-        RequestBody requestFile =
-                RequestBody.create(MediaType.parse("multipart/form-data"), file);
-
-        // MultipartBody.Part is used to send also the actual file name
-        MultipartBody.Part body =
-                MultipartBody.Part.createFormData("picture", file.getName(), requestFile);
-
-        // add another part within the multipart request
-        String descriptionString = "hello, this is description speaking";
-        RequestBody description =
-                RequestBody.create(
-                        MediaType.parse("multipart/form-data"), descriptionString);
-
-        // finally, execute the request
-        Call<ResponseBody> call = service.upload(description, body);
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Log.v("Upload", "success");
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.e("Upload error:", t.getMessage());
-            }
-        });
-    }
 
 
     @Override
@@ -337,38 +212,23 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
     }
 
-    public void onClickSend(View v){
-
-        String str = getRealPathFromURI(MainActivity.this,savedUri);
-        String[] s = str.split("/");
-
-        String ss = "";
-        for(int i = 0; i< (s.length-1);i++)
-            ss += s[i];
-        //File file = new File(Environment.getExternalStorageDirectory(), s[s.length-1]);
-        File file = new File(ss,s[s.length-1]);
-
-        Meeting meeting = new
-                Meeting(mMsgEditText.getText().toString(), mUsername,file);
-        mSimpleFirechatDatabaseReference.child("meetings")
-                .push().setValue(meeting);
-        mMsgEditText.setText("");
+    public void onClickSTest(View v){
 
     }
 
-    public String getRealPathFromURI(Context context, Uri contentUri) {
-        Cursor cursor = null;
-        try {
-            String[] proj = { MediaStore.Images.Media.DATA };
-            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            return cursor.getString(column_index);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
+    public void onClickSend(View v){
+
+        String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
+        AudioAttach.playAudio(MainActivity.this, savedUri);
+
+        ////////////////////////////////////////////////////
+
+        Meeting meeting = new
+                Meeting(mMeetingEditText.getText().toString(), mUsername,audioStr);
+        mSimpleFirebaseDatabaseReference.child("meetings")
+                .push().setValue(meeting);
+        mMeetingEditText.setText("");
+
     }
 
     @Override

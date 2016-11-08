@@ -10,16 +10,16 @@ public class Meeting {
 
     private String name;
     private String names;
-    private String description;
-    private String dateStart;
-    private String dateEnd;
-    private String priority;
-    private File file;
+    //private String description;
+    //private String dateStart;
+    //private String dateEnd;
+    //private String priority;
+    private String file;
 
     public Meeting() {
     }
 
-    public Meeting(String name, String names, File file) {
+    public Meeting(String name, String names, String file) {
         this.name = name;
         this.names = names;
         this.file = file;
@@ -41,11 +41,11 @@ public class Meeting {
         this.names = names;
     }
 
-    public File getFile() {
+    public String getFile() {
         return file;
     }
 
-    public void setFile(File file) {
+    public void setFile(String file) {
         this.file = file;
     }
 
