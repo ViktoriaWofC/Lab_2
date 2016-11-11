@@ -1,5 +1,6 @@
 package com.example.user.lab_2;
 
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -31,6 +32,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -41,6 +43,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 
 import static com.example.user.lab_2.TestClass.RQS_RECORDING;
@@ -65,6 +68,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     /////
     private static final int READ_BLOCK_SIZE = 100;
     Uri savedUri;
+
+    private boolean b = true;
+    private ValueEventListener listener;
+    private ParticipantListener participantListener;
+    private MeetingListener meetingListener;
 
 
     public static class FirechatMeetingViewHolder extends RecyclerView.ViewHolder {
@@ -101,100 +109,26 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         });
 
         //////////////////////////////////////////////////////////////////////////
-
-        mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
-        mMeetingRecyclerView = (RecyclerView) findViewById(R.id.messageRecyclerView);
-        mLinearLayoutManager = new LinearLayoutManager(this);
-        mLinearLayoutManager.setStackFromEnd(true);
-        mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
         mMeetingEditText = (EditText)findViewById(R.id.editText);
+
+        //mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
+        //mMeetingRecyclerView = (RecyclerView) findViewById(R.id.messageRecyclerView);
+        //mLinearLayoutManager = new LinearLayoutManager(this);
+        //mLinearLayoutManager.setStackFromEnd(true);
+        //mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
+
 
         mSimpleFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
 
 
-        mFirebaseAdapter = new FirebaseRecyclerAdapter(
-                Meeting.class,
-                R.layout.chat_message,
-                FirechatMeetingViewHolder.class,
-                mSimpleFirebaseDatabaseReference.child("meetings")) {
-
-            @Override
-            protected void populateViewHolder(RecyclerView.ViewHolder viewHolder, Object model, int position) {
-
-                FirechatMeetingViewHolder fviewHolder = (FirechatMeetingViewHolder)viewHolder;
-                Meeting meeting = (Meeting)model;
-
-                mProgressBar.setVisibility(ProgressBar.INVISIBLE);
-                //if(meeting.getNames().equals("Виктория Сах")){
-                fviewHolder.nameTextView.setText(meeting.getName());
-                fviewHolder.userTextView.setText(meeting.getNames());
-                //}
-               // fviewHolder.stringTextView.setText(meeting.getFile());
-
-            }
-
-            //@Override
-            protected void tpopulateViewHolder(FirechatMeetingViewHolder viewHolder, Meeting meeting, int position) {
-
-                mProgressBar.setVisibility(ProgressBar.INVISIBLE);
-                viewHolder.nameTextView.setText(meeting.getName());
-                viewHolder.userTextView.setText(meeting.getNames());
-                //viewHolder.stringTextView.setText(meeting.getFile());
-            }
-
-        };
-
-
-        mFirebaseAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
-
-            @Override
-            public void onItemRangeInserted(int positionStart, int itemCount) {
-
-                super.onItemRangeInserted(positionStart, itemCount);
-                int chatMessageCount = mFirebaseAdapter.getItemCount();
-                int lastVisiblePosition = mLinearLayoutManager.findLastCompletelyVisibleItemPosition();
-
-                if (lastVisiblePosition == -1 ||  (positionStart >= (chatMessageCount - 1) && lastVisiblePosition == (positionStart - 1))) {
-                    mMeetingRecyclerView.scrollToPosition(positionStart);
-                }
-            }
-        });
-
-        mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
-        mMeetingRecyclerView.setAdapter(mFirebaseAdapter);
+        //mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
+        //mMeetingRecyclerView.setAdapter(mFirebaseAdapter);
 
         t = (TextView)findViewById(R.id.testText);
 
+        participantListener = new ParticipantListener();
+        meetingListener = new MeetingListener();
 
-        ////
-        mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Participant pat = (Participant)dataSnapshot.getValue(Participant.class);//Participant.class);
-                if(pat == null)t.setText("no");
-                else t.setText("yes "+String.valueOf(dataSnapshot.getValue()) +" \n"+ pat.getPost());
-
-                /*try {
-                    //JSONObject jsonObject = new JSONObject(String.valueOf(dataSnapshot.getValue()));
-                    //GsonBuilder builder = new GsonBuilder();
-                    //Gson gson = builder.create();
-                    //Participant pat = gson.fromJson(String.valueOf(dataSnapshot.getValue()), Participant.class);
-                    //t.setText("yes "+pat);
-                    t.setText("yes "+String.valueOf(dataSnapshot.getValue()));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    t.setText("no");
-                }*/
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                // Getting Post failed, log a message
-                Log.w("tag", "loadPost:onCancelled", databaseError.toException());
-
-            }
-        });
 
 
         ////////////////////////////////////////////
@@ -237,16 +171,65 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         tb2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
-                String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
-                Uri uri = AudioAttach.getAudioFromString(MainActivity.this,name,audioStr);
-                AudioAttach.playAudio(MainActivity.this,uri);
+                playAudio(MainActivity.this);
 
             }
         });
 
     }
 
+    public class MeetingListener implements ValueEventListener {
+
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            Meeting meet;
+            String s = "";
+            for (DataSnapshot child : dataSnapshot.getChildren()) {
+                meet = (Meeting) child.getValue(Meeting.class);//Participant.class);
+                s += meet.getName() + " ";
+            }
+            t.setText("yes " + s);
+            mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    }
+
+    public class ParticipantListener implements ValueEventListener {
+
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            Participant pat;
+            String s = "";
+            for (DataSnapshot child : dataSnapshot.getChildren()) {
+                pat = (Participant) child.getValue(Participant.class);//Participant.class);
+                s += pat.getFirstName() + " ";
+            }
+            t.setText("yes " + s);
+            mSimpleFirebaseDatabaseReference.child("participant").removeEventListener(participantListener);
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    }
+
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
+    }
+
+    public void playAudio(Context context){
+        String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
+        String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
+        Uri uri = AudioAttach.getAudioFromString(context,name,audioStr);
+        AudioAttach.playAudio(MainActivity.this,uri);
+    }
 
     public void checkParticipant(String name){
         Participant pat = new Participant("2n","1n","3n","direct");
@@ -258,21 +241,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     }
 
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
-    }
-
     public void onClickTest(View v){
-        checkParticipant("Slava");
+        //checkParticipant("Slava");
+        //b = true;
+        //mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(participantListener);
+        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
     }
 
-    public void onClickSend(View v){
-
+    public void attachAudio(){
         String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
-        AudioAttach.playAudio(MainActivity.this, savedUri);
+        //AudioAttach.playAudio(MainActivity.this, savedUri);
+    }
 
+    public void createMeeting(){
+
+        String audioStr = "";
         ////////////////////////////////////////////////////
 
         Meeting meeting = new
@@ -280,7 +263,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         mSimpleFirebaseDatabaseReference.child("meetings")
                 .push().setValue(meeting);
         mMeetingEditText.setText("");
+    }
 
+    public void onClickSend(View v){
+        createMeeting();
     }
 
     @Override
