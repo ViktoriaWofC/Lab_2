@@ -33,8 +33,7 @@ public class AudioAttach {
             is.read(audio);
             is.close();
         } catch (Throwable t) {
-            Toast.makeText(context, "err 1!",
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "err 1!", Toast.LENGTH_LONG).show();
             Log.e("teg","errrr 1!",t);
         }
 

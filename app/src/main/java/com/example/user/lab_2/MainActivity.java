@@ -52,15 +52,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     /////
     private DatabaseReference mSimpleFirebaseDatabaseReference;
-    private FirebaseRecyclerAdapter mFirebaseAdapter;
-    private RecyclerView mMeetingRecyclerView;
-    private LinearLayoutManager mLinearLayoutManager;
-    private ProgressBar mProgressBar;
+    //private FirebaseRecyclerAdapter mFirebaseAdapter;
+    //private RecyclerView mMeetingRecyclerView;
+    //private LinearLayoutManager mLinearLayoutManager;
     private EditText mMeetingEditText;
     /////
-    private GoogleApiClient mGoogleApiClient;
-    private FirebaseAuth mFirebaseAuth;
-    private FirebaseUser mFirebaseUser;
+    //private GoogleApiClient mGoogleApiClient;
+    //private FirebaseAuth mFirebaseAuth;
+    //private FirebaseUser mFirebaseUser;
     private String mUsername;
 
     private TextView t;
@@ -132,8 +131,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
 
         ////////////////////////////////////////////
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
+        /*
+        mGoogleApiClient = new GoogleApiClient.Builder(this).enableAutoManage(this , this )
                 .addApi(Auth.GOOGLE_SIGN_IN_API)
                 .build();
 
@@ -146,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         } else {
             mUsername = mFirebaseUser.getDisplayName();
         }
+        */
 
         //////////////////////////////
 
@@ -227,6 +227,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     public void playAudio(Context context){
         String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
         String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
+        //audioStr - from json
         Uri uri = AudioAttach.getAudioFromString(context,name,audioStr);
         AudioAttach.playAudio(MainActivity.this,uri);
     }
@@ -291,8 +292,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         switch (item.getItemId()) {
             case R.id.sign_out_menu:
 
-                mFirebaseAuth.signOut();
-                Auth.GoogleSignInApi.signOut(mGoogleApiClient);
+                //mFirebaseAuth.signOut();
+                //Auth.GoogleSignInApi.signOut(mGoogleApiClient);
                 mUsername = "";//DEFAULT_NAME;
                 startActivity(new Intent(this, AuthorizationActivity.class));
                 return true;
