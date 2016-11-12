@@ -123,9 +123,6 @@ public class AuthorizationActivity extends AppCompatActivity {
                                 startService(intent);
 
 
-                                //DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-                                //Participant pat = new Participant(lastName,firstName,middleName,post);
-                                //databaseReference.child("participant").push().setValue(pat);
                             }
                             else Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
                         }
