@@ -103,7 +103,6 @@ public class TestClass extends AppCompatActivity {
 
                     String json = jsonObject.toString();
                     Log.d("json", json);
-                    Log.d("json", "tt");
 
                 } catch (JSONException e){}*/
 

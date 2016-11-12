@@ -2,6 +2,7 @@ package com.example.user.lab_2;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -39,11 +40,20 @@ public class AuthorizationActivity extends AppCompatActivity {
     private String post = "";
     View layoutView;
 
+    static final String F = "f";
+    static final String L = "l";
+    static final String M = "m";
+    static final String P = "p";
+
+    Intent intent;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_auth);
         context = AuthorizationActivity.this;
+
+        intent = new Intent(this,FirebaseNewParticipantService.class);
 
         editLogin = (EditText)findViewById(R.id.edit_login);
         editPassword = (EditText)findViewById(R.id.edit_password);
@@ -105,9 +115,17 @@ public class AuthorizationActivity extends AppCompatActivity {
                                 editLogin.setText(login);
                                 editPassword.setText(password);
 
-                                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-                                Participant pat = new Participant(lastName,firstName,middleName,post);
-                                databaseReference.child("participant").push().setValue(pat);
+
+                                intent.putExtra(L, lastName);
+                                intent.putExtra(F, firstName);
+                                intent.putExtra(M, middleName);
+                                intent.putExtra(P, post);
+                                startService(intent);
+
+
+                                //DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
+                                //Participant pat = new Participant(lastName,firstName,middleName,post);
+                                //databaseReference.child("participant").push().setValue(pat);
                             }
                             else Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
                         }
