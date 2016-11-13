@@ -13,4 +13,9 @@
     <string name="passwordI">Password*</string>
     <string name="necessarily">*necessarily</string>
     <string name="post">Post</string>
+    <string name="update_meeting_list">Update meeting list</string>
+    <string name="meeting">Meeting</string>
+    <string name="priority">Priority:</string>
+    <string name="i_am_participate">I am participate</string>
+    <string name="name">Name:</string>
 </resources>

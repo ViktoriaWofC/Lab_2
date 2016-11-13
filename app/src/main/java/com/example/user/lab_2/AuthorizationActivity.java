@@ -59,7 +59,7 @@ public class AuthorizationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_auth);
         context = AuthorizationActivity.this;
 
-
+        getLoginPassword();
 
         editLogin = (EditText)findViewById(R.id.edit_login);
         editPassword = (EditText)findViewById(R.id.edit_password);
@@ -71,14 +71,19 @@ public class AuthorizationActivity extends AppCompatActivity {
                 login = editLogin.getText().toString();
                 password = editPassword.getText().toString();
 
-                int k = logins.indexOf(login);
+                if(login.equals("")) Toast.makeText(context, "Login is NULL!",Toast.LENGTH_LONG).show();
+                else if(password.equals("")) Toast.makeText(context, "Password is NULL!",Toast.LENGTH_LONG).show();
+                else {
+                    int k = logins.indexOf(login);
 
-                if(passwords.get(k).equals(password)){
-                    intent = new Intent(context,MainActivity.class);
-                    intent.putExtra("login",login);
-                    startActivity(intent);
+                    if(k>=0)
+                        if (passwords.get(k).equals(password)) {
+                            intent = new Intent(context, MainActivity.class);
+                            intent.putExtra("login", login);
+                            startActivity(intent);
+                        } else Toast.makeText(AuthorizationActivity.this, "Password is not correct!", Toast.LENGTH_LONG).show();
+                    else Toast.makeText(AuthorizationActivity.this, "Login is not correct!", Toast.LENGTH_LONG).show();
                 }
-                else Toast.makeText(AuthorizationActivity.this, "Password is not correct!",Toast.LENGTH_LONG).show();
             }
         });
 
@@ -124,29 +129,32 @@ public class AuthorizationActivity extends AppCompatActivity {
                         if(login.equals("")) Toast.makeText(context, "Login is NULL!",Toast.LENGTH_LONG).show();
                         else if(password.equals("")) Toast.makeText(context, "Password is NULL!",Toast.LENGTH_LONG).show();
                         else {
-                            ConnectivityManager connMan = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-                            NetworkInfo ni = connMan.getActiveNetworkInfo();
-                            if(ni!=null&&ni.isConnected()){
 
-                                //service?
-                                //intent = new Intent(context, FirebaseCheckLoginService.class);
-                                //intent.putExtra("login",login);
+                            if(!logins.contains(login)){
+                                ConnectivityManager connMan = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+                                NetworkInfo ni = connMan.getActiveNetworkInfo();
+                                if(ni!=null&&ni.isConnected()){
 
-                                //check login already exist
-                                if(!checkLogin(login)){
+                                    //service?
+                                    //intent = new Intent(context, FirebaseCheckLoginService.class);
+                                    //intent.putExtra("login",login);
+
                                     editLogin.setText(login);
                                     editPassword.setText(password);
-
                                     intent = new Intent(context,FirebaseNewParticipantService.class);
                                     intent.putExtra("l", lastName);
                                     intent.putExtra("f", firstName);
                                     intent.putExtra("m", middleName);
                                     intent.putExtra("p", post);
+                                    intent.putExtra("log",login);
+                                    intent.putExtra("pas",password);
                                     startService(intent);
+
+                                    getLoginPassword();
                                 }
-                                else Toast.makeText(context, "This login is used!",Toast.LENGTH_LONG).show();
+                                else Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
                             }
-                            else Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
+                            else Toast.makeText(context, "This login is used!",Toast.LENGTH_LONG).show();
                         }
                     }
                 });
@@ -164,20 +172,10 @@ public class AuthorizationActivity extends AppCompatActivity {
         });
     }
 
-    public boolean checkLogin(String login){
-
+    public void getLoginPassword(){
         databaseReference = FirebaseDatabase.getInstance().getReference();
         participantListener = new ParticipantListener();
         databaseReference.child("participant").addValueEventListener(participantListener);
-
-        /*boolean b = false;
-        for(int i = 0; i< logins.size(); i++)
-            if(logins.get(i).equals("login")) b = true;
-            return b;*/
-
-        return logins.contains(login);
-
-
     }
 
     public class ParticipantListener implements ValueEventListener {
@@ -188,8 +186,8 @@ public class AuthorizationActivity extends AppCompatActivity {
 
             for (DataSnapshot child : dataSnapshot.getChildren()) {
                 pat = (Participant) child.getValue(Participant.class);
-                //logins.add(pat.getLogin());
-                //passwords.add(pat.getPassword());
+                logins.add(pat.getLogin());
+                passwords.add(pat.getPassword());
             }
             databaseReference.child("participant").removeEventListener(participantListener);
         }
@@ -200,4 +198,12 @@ public class AuthorizationActivity extends AppCompatActivity {
         }
     }
 
+    /*@Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        login = "";
+        password = "";
+        logins.clear();
+        passwords.clear();
+    }*/
 }

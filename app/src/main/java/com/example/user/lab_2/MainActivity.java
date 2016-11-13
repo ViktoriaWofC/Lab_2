@@ -1,9 +1,11 @@
 package com.example.user.lab_2;
 
+import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -20,6 +22,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -61,6 +64,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     //private LinearLayoutManager mLinearLayoutManager;
     private EditText mMeetingEditText;
     private TextView userName;
+    private TextView dateToday;
+    private Button updateButton;
     RecyclerView recyclerMeeting;
     /////
     //private GoogleApiClient mGoogleApiClient;
@@ -86,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     String login = "";
     String stringFIO = "";
     Context context;
+    String today = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +100,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         context = MainActivity.this;
+        today = getTodayDate();
+        login = getIntent().getStringExtra("login");
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -107,7 +115,17 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         //////////////////////////////////////////////////////////////////////////
         mMeetingEditText = (EditText)findViewById(R.id.editText);
         userName = (TextView)findViewById(R.id.userName);
+        dateToday = (TextView)findViewById(R.id.today);
+        dateToday.setText("Today: "+getTodayDate());
 
+        updateButton = (Button)findViewById(R.id.update_button);
+        updateButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
+                mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+            }
+        });
 
         mSimpleFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
 
@@ -118,20 +136,20 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         t = (TextView)findViewById(R.id.testText);
 
         participantListener = new ParticipantListener();
-        meetingListener = new MeetingListener();
+        //meetingListener = new MeetingListener();
 
 
-        Date date = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
-        String dateString = sdf.format(date);
-
-        t.setText(dateString);
+        t.setText(getTodayDate());
         ///////////////////////////////////////////////////////////
 
 
         //получаем логин из интента
         mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(participantListener);
 
+        //startService(new Intent(this,FirebaseOnceUpdateMeetingService.class));
+        //startService(new Intent(context,FirebaseUpdateMeetingService.class));
+
+        meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
         mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
 
         recyclerMeeting = (RecyclerView)findViewById(R.id.recyclerMeeting);
@@ -159,19 +177,22 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     }
 
+    public String getTodayDate(){
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+        String dateString = sdf.format(date);
+        return dateString;
+    }
+
     class MeetingViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
         public TextView nameTextView;
-        public TextView userTextView;
-        public TextView stringTextView;
         private CardView cv;
 
         public MeetingViewHolder(View itemView) {
             super(itemView);
             cv = (CardView)itemView.findViewById(R.id.cv);
             nameTextView = (TextView) itemView.findViewById(R.id.nameTextView);
-            userTextView = (TextView) itemView.findViewById(R.id.userTextView);
-            stringTextView = (TextView) itemView.findViewById(R.id.stringTextView);
 
             itemView.setOnClickListener(this);
         }
@@ -201,16 +222,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         public MeetingViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(
                     R.layout.meeting_item, parent, false);
-// create ViewHolder
             MeetingViewHolder viewHolder = new MeetingViewHolder(itemLayoutView);
             return viewHolder;
-            //return new MeetingViewHolder(View.inflate(context, R.layout.meeting_item, null));
         }
 
         @Override
         public void onBindViewHolder(MeetingViewHolder holder, int position) {
             holder.nameTextView.setText(meetings.get(position).getName());
-            holder.userTextView.setText(meetings.get(position).getNames());
         }
 
         @Override
@@ -221,12 +239,27 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     public class MeetingListener implements ValueEventListener {
 
+        private DatabaseReference ref;
+
+        public MeetingListener(DatabaseReference r){
+            ref = r;
+        }
+
         @Override
         public void onDataChange(DataSnapshot dataSnapshot) {
+            Meeting meet;
+            String start,end;
+            meetings.clear();
             for (DataSnapshot child : dataSnapshot.getChildren()) {
-                meetings.add((Meeting) child.getValue(Meeting.class));
+                meet = (Meeting) child.getValue(Meeting.class);
+                start = meet.getDateStart();
+                end = meet.getDateEnd();
+                if(compareDate(start,today)==-1||compareDate(start,today)==0)
+                    if(compareDate(end,today)==1||compareDate(end,today)==0)
+                        meetings.add(meet);
             }
-            mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
+            //mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
+            ref.child("meetings").removeEventListener(this);
             //
             recyclerMeeting.setAdapter(new MeetingAdaper());
         }
@@ -237,6 +270,26 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         }
     }
 
+    public int compareDate(String d1, String d2){
+        //d1>d2 - 1
+        //d1=d2 - 0
+        //d1<d2 - -1
+        int month1 = Integer.valueOf(d1.substring(3, 5));
+        int day1 = Integer.valueOf(d1.substring(0, 2));
+        int year1 = Integer.valueOf(d1.substring(6));
+        int month2 = Integer.valueOf(d2.substring(3, 5));
+        int day2 = Integer.valueOf(d2.substring(0, 2));
+        int year2 = Integer.valueOf(d2.substring(6));
+
+        if(year1>year2) return 1;
+        else if(year1<year2) return -1;
+        else if(month1>month2) return 1;
+        else if(month1<month2) return -1;
+        else if(day1>day2) return 1;
+        else if(day1<day2) return -1;
+        else return 0;
+    }
+
     public class ParticipantListener implements ValueEventListener {
 
         @Override
@@ -245,15 +298,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             String s = "";
             for (DataSnapshot child : dataSnapshot.getChildren()) {
                 pat = (Participant) child.getValue(Participant.class);//Participant.class);
-                //if(login.equals(pat.getLogin()))
+                if(login.equals(pat.getLogin()))
                 {
                     participant = pat;
-                    stringFIO = "Ivaaaan";
-                    //stringFIO = pat.getLastName()+ " "+ pat.getFirstName()+" "+pat.getMiddleName();
-                    userName.setText(stringFIO);
+                    stringFIO = pat.getLastName()+ " "+ pat.getFirstName()+" "+pat.getMiddleName();
+                    userName.setText("User: "+stringFIO);
                 }
             }
-            t.setText("yes " + s);
             mSimpleFirebaseDatabaseReference.child("participant").removeEventListener(participantListener);
         }
 
@@ -262,7 +313,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
         }
     }
-
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -278,10 +328,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     }
 
     public void checkParticipant(String name){
-        Participant pat = new Participant("2n","1n","3n","direct");
-        //GsonBuilder builder = new GsonBuilder();
-        //Gson gson = builder.create();
-        //mSimpleFirebaseDatabaseReference.child("participant").push().setValue(gson.toJson(pat));
+        Participant pat = new Participant("2n","1n","3n","direct","2n","2n");
 
         mSimpleFirebaseDatabaseReference.child("participant").push().setValue(pat);
 
@@ -294,6 +341,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         //mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(participantListener);
 
         //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+
+        createMeeting();
+
+        //Date d = new Date();
+
     }
 
     public void attachAudio(){
@@ -307,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         ////////////////////////////////////////////////////
 
         Meeting meeting = new
-                Meeting(mMeetingEditText.getText().toString(), mUsername,audioStr);
+                Meeting("meeting", "text",getTodayDate(),getTodayDate(),"Planned",audioStr);
         mSimpleFirebaseDatabaseReference.child("meetings")
                 .push().setValue(meeting);
         mMeetingEditText.setText("");

@@ -20,7 +20,9 @@ public class FirebaseNewParticipantService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-        Participant pat = new Participant(intent.getStringExtra("l"),intent.getStringExtra("f"),intent.getStringExtra("m"),intent.getStringExtra("p"));
+        Participant pat = new Participant(intent.getStringExtra("l"),intent.getStringExtra("f"),
+                intent.getStringExtra("m"),intent.getStringExtra("p"),
+                intent.getStringExtra("log"),intent.getStringExtra("pas"));
         databaseReference.child("participant").push().setValue(pat);
         stopSelf();
     }

@@ -12,18 +12,39 @@ public class Participant {
     private String lastName;
     private String middleName;
     private String post;
+    private String login;
+    private String password;
 
-    public Participant() {
+    public Participant(){
     }
 
-    public Participant(String lastName, String firstName, String middleName, String post) {
+
+    public Participant(String lastName, String firstName, String middleName, String post,String login,String password) {
         this.lastName = lastName;
         this.firstName = firstName;
         this.middleName = middleName;
         this.post = post;
+        this.login = login;
+        this.password = password;
     }
 
     //public String getAllNames(){ return lastName+" "+firstName+" "+middleName;  }
+
+    public String getLogin(){
+        return login;
+    }
+
+    public void setLogin(String login){
+        this.login = login;
+    }
+
+    public String getPassword(){
+        return password;
+    }
+
+    public void setPassword(String password){
+        this.password = password;
+    }
 
     public String getPost() {
         return post;
