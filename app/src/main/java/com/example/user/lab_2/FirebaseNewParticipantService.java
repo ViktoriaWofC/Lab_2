@@ -17,20 +17,11 @@ public class FirebaseNewParticipantService extends IntentService {
         super("FirebaseNewParticipantService");
     }
 
-    static final String F = "f";
-    static final String L = "l";
-    static final String M = "m";
-    static final String P = "p";
-
     @Override
     protected void onHandleIntent(Intent intent) {
-        Log.e("!!!!!!!","FirebaseNewParticipantService");
-        Bundle bundle = intent.getExtras();
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-        //Participant pat = new Participant("r","r","r","r");
-        Participant pat = new Participant(intent.getStringExtra(L),intent.getStringExtra(F),intent.getStringExtra(M),intent.getStringExtra(P));
-        //Participant pat = new Participant(bundle.getString(L),bundle.getString(F),bundle.getString(M),bundle.getString(P));
+        Participant pat = new Participant(intent.getStringExtra("l"),intent.getStringExtra("f"),intent.getStringExtra("m"),intent.getStringExtra("p"));
         databaseReference.child("participant").push().setValue(pat);
-        //stopSelf();
+        stopSelf();
     }
 }

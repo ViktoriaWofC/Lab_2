@@ -15,9 +15,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -40,12 +45,13 @@ public class AuthorizationActivity extends AppCompatActivity {
     private String post = "";
     View layoutView;
 
-    static final String F = "f";
-    static final String L = "l";
-    static final String M = "m";
-    static final String P = "p";
-
     Intent intent;
+    AlertDialog al;
+    AlertDialog.Builder ad;
+    DatabaseReference databaseReference;
+    ParticipantListener participantListener;
+    List<String> logins = new ArrayList<>();
+    List<String> passwords = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,7 +59,7 @@ public class AuthorizationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_auth);
         context = AuthorizationActivity.this;
 
-        intent = new Intent(this,FirebaseNewParticipantService.class);
+
 
         editLogin = (EditText)findViewById(R.id.edit_login);
         editPassword = (EditText)findViewById(R.id.edit_password);
@@ -62,7 +68,17 @@ public class AuthorizationActivity extends AppCompatActivity {
         buttonLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(AuthorizationActivity.this, "click LOG IN!",Toast.LENGTH_LONG).show();
+                login = editLogin.getText().toString();
+                password = editPassword.getText().toString();
+
+                int k = logins.indexOf(login);
+
+                if(passwords.get(k).equals(password)){
+                    intent = new Intent(context,MainActivity.class);
+                    intent.putExtra("login",login);
+                    startActivity(intent);
+                }
+                else Toast.makeText(AuthorizationActivity.this, "Password is not correct!",Toast.LENGTH_LONG).show();
             }
         });
 
@@ -72,10 +88,9 @@ public class AuthorizationActivity extends AppCompatActivity {
             public void onClick(View view) {
                 LayoutInflater li = LayoutInflater.from(context);
                 layoutView = li.inflate(R.layout.sing_up_layout, null);
-                AlertDialog.Builder ad = new AlertDialog.Builder(context);
+                ad = new AlertDialog.Builder(context);
                 ad.setView(layoutView);
                 ad.setCancelable(true);
-
 
                 ad.setPositiveButton(R.string.sign_up, new DialogInterface.OnClickListener() {
                     @Override
@@ -112,25 +127,77 @@ public class AuthorizationActivity extends AppCompatActivity {
                             ConnectivityManager connMan = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
                             NetworkInfo ni = connMan.getActiveNetworkInfo();
                             if(ni!=null&&ni.isConnected()){
-                                editLogin.setText(login);
-                                editPassword.setText(password);
 
+                                //service?
+                                //intent = new Intent(context, FirebaseCheckLoginService.class);
+                                //intent.putExtra("login",login);
 
-                                intent.putExtra(L, lastName);
-                                intent.putExtra(F, firstName);
-                                intent.putExtra(M, middleName);
-                                intent.putExtra(P, post);
-                                startService(intent);
+                                //check login already exist
+                                if(!checkLogin(login)){
+                                    editLogin.setText(login);
+                                    editPassword.setText(password);
 
-
+                                    intent = new Intent(context,FirebaseNewParticipantService.class);
+                                    intent.putExtra("l", lastName);
+                                    intent.putExtra("f", firstName);
+                                    intent.putExtra("m", middleName);
+                                    intent.putExtra("p", post);
+                                    startService(intent);
+                                }
+                                else Toast.makeText(context, "This login is used!",Toast.LENGTH_LONG).show();
                             }
                             else Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
                         }
                     }
                 });
-                AlertDialog al = ad.create();
+
+                ad.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        al.cancel();
+                    }
+                });
+
+                al = ad.create();
                 al.show();
             }
         });
     }
+
+    public boolean checkLogin(String login){
+
+        databaseReference = FirebaseDatabase.getInstance().getReference();
+        participantListener = new ParticipantListener();
+        databaseReference.child("participant").addValueEventListener(participantListener);
+
+        /*boolean b = false;
+        for(int i = 0; i< logins.size(); i++)
+            if(logins.get(i).equals("login")) b = true;
+            return b;*/
+
+        return logins.contains(login);
+
+
+    }
+
+    public class ParticipantListener implements ValueEventListener {
+
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            Participant pat;
+
+            for (DataSnapshot child : dataSnapshot.getChildren()) {
+                pat = (Participant) child.getValue(Participant.class);
+                //logins.add(pat.getLogin());
+                //passwords.add(pat.getPassword());
+            }
+            databaseReference.child("participant").removeEventListener(participantListener);
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    }
+
 }

@@ -9,13 +9,16 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -42,6 +45,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -56,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     //private RecyclerView mMeetingRecyclerView;
     //private LinearLayoutManager mLinearLayoutManager;
     private EditText mMeetingEditText;
+    private TextView userName;
+    RecyclerView recyclerMeeting;
     /////
     //private GoogleApiClient mGoogleApiClient;
     //private FirebaseAuth mFirebaseAuth;
@@ -63,6 +69,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private String mUsername;
 
     private TextView t;
+
+    List<Meeting> meetings = new ArrayList<>();
+    //List<Participant> participants = new ArrayList<>();
+    Participant participant;
 
     /////
     private static final int READ_BLOCK_SIZE = 100;
@@ -73,23 +83,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private ParticipantListener participantListener;
     private MeetingListener meetingListener;
 
-
-    public static class FirechatMeetingViewHolder extends RecyclerView.ViewHolder {
-
-        public TextView nameTextView;
-        public TextView userTextView;
-        public TextView stringTextView;
-
-        public FirechatMeetingViewHolder(View v) {
-            super(v);
-            nameTextView = (TextView) itemView.findViewById(R.id.nameTextView);
-            userTextView = (TextView) itemView.findViewById(R.id.userTextView);
-            stringTextView = (TextView) itemView.findViewById(R.id.stringTextView);
-        }
-
-    }
-
-    /////////////////////////////////////////////////////////////////////
+    String login = "";
+    String stringFIO = "";
+    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        context = MainActivity.this;
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -109,12 +106,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
         //////////////////////////////////////////////////////////////////////////
         mMeetingEditText = (EditText)findViewById(R.id.editText);
-
-        //mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
-        //mMeetingRecyclerView = (RecyclerView) findViewById(R.id.messageRecyclerView);
-        //mLinearLayoutManager = new LinearLayoutManager(this);
-        //mLinearLayoutManager.setStackFromEnd(true);
-        //mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
+        userName = (TextView)findViewById(R.id.userName);
 
 
         mSimpleFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
@@ -129,40 +121,29 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         meetingListener = new MeetingListener();
 
 
-
-        ////////////////////////////////////////////
-        /*
-        mGoogleApiClient = new GoogleApiClient.Builder(this).enableAutoManage(this , this )
-                .addApi(Auth.GOOGLE_SIGN_IN_API)
-                .build();
-
-        mFirebaseAuth = FirebaseAuth.getInstance();
-        mFirebaseUser = mFirebaseAuth.getCurrentUser();
-        if (mFirebaseUser == null) {
-            startActivity(new Intent(this, AuthorizationActivity.class));
-            finish();
-            return;
-        } else {
-            mUsername = mFirebaseUser.getDisplayName();
-        }
-        */
-
-        //////////////////////////////
-
         Date date = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
         String dateString = sdf.format(date);
 
-
-
         t.setText(dateString);
+        ///////////////////////////////////////////////////////////
+
+
+        //получаем логин из интента
+        mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(participantListener);
+
+        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+
+        recyclerMeeting = (RecyclerView)findViewById(R.id.recyclerMeeting);
+        recyclerMeeting.setLayoutManager(new LinearLayoutManager(this));
+
 
         ////////////////////////////////////////////////
         Button tb = (Button)findViewById(R.id.testBut);
         tb.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                 Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+                Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
                 startActivityForResult(intent, RQS_RECORDING);
             }
         });
@@ -178,18 +159,76 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     }
 
+    class MeetingViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+
+        public TextView nameTextView;
+        public TextView userTextView;
+        public TextView stringTextView;
+        private CardView cv;
+
+        public MeetingViewHolder(View itemView) {
+            super(itemView);
+            cv = (CardView)itemView.findViewById(R.id.cv);
+            nameTextView = (TextView) itemView.findViewById(R.id.nameTextView);
+            userTextView = (TextView) itemView.findViewById(R.id.userTextView);
+            stringTextView = (TextView) itemView.findViewById(R.id.stringTextView);
+
+            itemView.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View view) {
+
+        }
+
+        /*public MeetingViewHolder(ViewGroup parent) {
+            super(getLayoutInflater().inflate(R.layout.meeting_item, parent, false));
+            nameTextView = (TextView) itemView.findViewById(R.id.nameTextView);
+            userTextView = (TextView) itemView.findViewById(R.id.userTextView);
+            stringTextView = (TextView) itemView.findViewById(R.id.stringTextView);
+        }*/
+    }
+
+    class MeetingAdaper extends RecyclerView.Adapter<MeetingViewHolder> {
+
+       /* private List<Meeting> meetings;
+
+        public MeetingAdaper(List<Meeting> meet){
+            meetings = meet;
+        }*/
+
+        @Override
+        public MeetingViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(
+                    R.layout.meeting_item, parent, false);
+// create ViewHolder
+            MeetingViewHolder viewHolder = new MeetingViewHolder(itemLayoutView);
+            return viewHolder;
+            //return new MeetingViewHolder(View.inflate(context, R.layout.meeting_item, null));
+        }
+
+        @Override
+        public void onBindViewHolder(MeetingViewHolder holder, int position) {
+            holder.nameTextView.setText(meetings.get(position).getName());
+            holder.userTextView.setText(meetings.get(position).getNames());
+        }
+
+        @Override
+        public int getItemCount() {
+            return meetings.size();
+        }
+    }
+
     public class MeetingListener implements ValueEventListener {
 
         @Override
         public void onDataChange(DataSnapshot dataSnapshot) {
-            Meeting meet;
-            String s = "";
             for (DataSnapshot child : dataSnapshot.getChildren()) {
-                meet = (Meeting) child.getValue(Meeting.class);//Participant.class);
-                s += meet.getName() + " ";
+                meetings.add((Meeting) child.getValue(Meeting.class));
             }
-            t.setText("yes " + s);
             mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
+            //
+            recyclerMeeting.setAdapter(new MeetingAdaper());
         }
 
         @Override
@@ -206,7 +245,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             String s = "";
             for (DataSnapshot child : dataSnapshot.getChildren()) {
                 pat = (Participant) child.getValue(Participant.class);//Participant.class);
-                s += pat.getFirstName() + " ";
+                //if(login.equals(pat.getLogin()))
+                {
+                    participant = pat;
+                    stringFIO = "Ivaaaan";
+                    //stringFIO = pat.getLastName()+ " "+ pat.getFirstName()+" "+pat.getMiddleName();
+                    userName.setText(stringFIO);
+                }
             }
             t.setText("yes " + s);
             mSimpleFirebaseDatabaseReference.child("participant").removeEventListener(participantListener);
@@ -245,8 +290,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     public void onClickTest(View v){
         //checkParticipant("Slava");
         //b = true;
+
         //mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(participantListener);
-        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+
+        //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
     }
 
     public void attachAudio(){
