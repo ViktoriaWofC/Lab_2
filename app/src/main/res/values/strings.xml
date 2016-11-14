@@ -18,4 +18,23 @@
     <string name="priority">Priority:</string>
     <string name="i_am_participate">I am participate</string>
     <string name="name">Name:</string>
+    <string name="description">Description:</string>
+    <string name="date_start">Date start:</string>
+    <string name="date_end">Date end:</string>
+    <string name="participants">Participants:</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="play">Play</string>
+    <string name="add_record">Add record</string>
+    <string name="attachment">Attachment:</string>
+    <string name="create">Create</string>
+    <string name="delete_record">Delete record</string>
+
+    <string-array name="prioritylist">
+        <item>Urgent</item>
+        <item>Planned</item>
+        <item>Possible</item>
+    </string-array>
+
 </resources>

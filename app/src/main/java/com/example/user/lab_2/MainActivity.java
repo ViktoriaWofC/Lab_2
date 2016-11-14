@@ -2,7 +2,10 @@ package com.example.user.lab_2;
 
 import android.app.IntentService;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -10,6 +13,7 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
@@ -25,6 +29,8 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,7 +56,9 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 import static com.example.user.lab_2.TestClass.RQS_RECORDING;
@@ -76,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private TextView t;
 
     List<Meeting> meetings = new ArrayList<>();
+    List<String> keys = new ArrayList<>();
+    int key = 0;
     //List<Participant> participants = new ArrayList<>();
     Participant participant;
 
@@ -93,6 +103,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     Context context;
     String today = "";
 
+    AlertDialog al;
+    AlertDialog.Builder ad;
+    View layoutView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,8 +121,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                onClickFab(view);
             }
         });
 
@@ -199,7 +212,60 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
         @Override
         public void onClick(View view) {
+            LayoutInflater li = LayoutInflater.from(context);
+            layoutView = li.inflate(R.layout.meeting_layout, null);
+            TextView tv;
+            int position = this.getLayoutPosition();
+            key = position;
 
+            ad = new AlertDialog.Builder(context);
+            ad.setView(layoutView);
+            ad.setCancelable(false);
+
+            tv = (TextView)layoutView.findViewById(R.id.text_name);
+            tv.setText(meetings.get(position).getName());
+
+            tv = (TextView)layoutView.findViewById(R.id.text_description);
+            tv.setText(meetings.get(position).getDescription());
+
+            tv = (TextView)layoutView.findViewById(R.id.text_date_start);
+            tv.setText(meetings.get(position).getDateStart());
+
+            tv = (TextView)layoutView.findViewById(R.id.text_date_end);
+            tv.setText(meetings.get(position).getDateEnd());
+
+            tv = (TextView)layoutView.findViewById(R.id.text_priority);
+            tv.setText(meetings.get(position).getPriority());
+
+            tv = (TextView)layoutView.findViewById(R.id.text_participants);
+            List<String> parts = new ArrayList<>();
+            parts = meetings.get(position).getParticipants();
+            if(!(parts.size()==1&&parts.get(0).equals(""))){
+                String part = parts.get(0);
+                for(int i = 1; i< parts.size();i++)
+                    part += ", "+parts.get(i);
+
+                tv.setText(part);
+            }
+            else tv.setText("No participants");
+
+            Switch sw = (Switch)layoutView.findViewById(R.id.switchs);
+            String fio = participant.getLastName()+ " "+ participant.getFirstName()+" "+participant.getMiddleName();
+            if(parts.contains(fio))
+                sw.setChecked(true);
+            else sw.setChecked(false);
+
+            tv = (TextView)layoutView.findViewById(R.id.text_music);
+            Button play = (Button)layoutView.findViewById(R.id.button_play);
+            Button delete = (Button)layoutView.findViewById(R.id.button_delete_record);
+            if(meetings.get(position).getFile().size()==1) {
+                play.setEnabled(false);
+                delete.setEnabled(false);
+                tv.setText("");
+            }else tv.setText(meetings.get(position).getFile().get(meetings.get(position).getFile().size()-1));
+
+            al = ad.create();
+            al.show();
         }
 
         /*public MeetingViewHolder(ViewGroup parent) {
@@ -255,8 +321,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 start = meet.getDateStart();
                 end = meet.getDateEnd();
                 if(compareDate(start,today)==-1||compareDate(start,today)==0)
-                    if(compareDate(end,today)==1||compareDate(end,today)==0)
+                    if(compareDate(end,today)==1||compareDate(end,today)==0) {
                         meetings.add(meet);
+                        keys.add(child.getKey());
+                    }
             }
             //mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
             ref.child("meetings").removeEventListener(this);
@@ -319,6 +387,229 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
     }
 
+    public void onClickSave(View view){
+
+        Switch sw = (Switch)layoutView.findViewById(R.id.switchs);
+
+        String fio = participant.getLastName()+" "+participant.getFirstName()+" "+participant.getMiddleName();
+        List<String> parts = new ArrayList<>();
+        parts = meetings.get(key).getParticipants();
+        if(!(parts.size()==1&&parts.get(0).equals(""))){
+
+            if(!parts.contains(fio)&&sw.isChecked()) {
+                parts.add(fio);
+                //вызвать сервис
+                List<String> music = new ArrayList<>();
+                if(savedUri==null)
+                    music.add("");
+                else{
+                    music = AudioAttach.getStringArrFromAudio(context,savedUri);
+                    music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
+                }
+
+                Map<String,Object> m = new HashMap<String,Object>();
+                m.put("participants",parts);
+                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+                m.put("file",music);
+                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+            }
+            else if(parts.contains(fio)&&!sw.isChecked()){
+                parts.remove(fio);
+                if(parts.size()==0)
+                    parts.add("");
+                //вызвать сервис
+                List<String> music = new ArrayList<>();
+                if(savedUri==null)
+                    music.add("");
+                else{
+                    music = AudioAttach.getStringArrFromAudio(context,savedUri);
+                    music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
+                }
+
+                Map<String,Object> m = new HashMap<String,Object>();
+                m.put("participants",parts);
+                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+                m.put("file",music);
+                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+            }
+            else{
+                //вызвать сервис
+                List<String> music = new ArrayList<>();
+                if(savedUri==null)
+                    music.add("");
+                else{
+                    music = AudioAttach.getStringArrFromAudio(context,savedUri);
+                    music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
+                }
+                Map<String,Object> m = new HashMap<String,Object>();
+                m.put("file",music);
+                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+            }
+        }
+        else if(sw.isChecked()) {
+            parts.remove("");
+            parts.add(fio);
+            //вызвать сервис
+            List<String> music = new ArrayList<>();
+            if(savedUri==null)
+                music.add("");
+            else{
+                music = AudioAttach.getStringArrFromAudio(context,savedUri);
+                music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
+            }
+            Map<String,Object> m = new HashMap<String,Object>();
+            m.put("participants",parts);
+            mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+            m.put("file",music);
+            mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+        }
+
+
+        al.cancel();
+        savedUri = null;
+    }
+
+    public void onClickCancel(View view){
+        al.cancel();
+    }
+
+    public void onClickDelete(View view){
+        ///
+
+        al.cancel();
+        savedUri = null;
+
+    }
+
+    public void onClickPlay(View view){
+        //вызов сервиса
+        if(savedUri!=null){
+            AudioAttach.playAudio(context,savedUri);
+        }
+        else{
+            List<String> audioStr = meetings.get(key).getFile();
+            //audioStr - from json
+            savedUri = AudioAttach.getAudioFromString(context,audioStr);
+            AudioAttach.playAudio(MainActivity.this,savedUri);
+        }
+    }
+
+    public void onClickAddAttach(View view){
+        Button play = (Button)layoutView.findViewById(R.id.button_play);
+        Button delete = (Button)layoutView.findViewById(R.id.button_delete_record);
+        play.setEnabled(true);
+        delete.setEnabled(true);
+
+        Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+        startActivityForResult(intent, RQS_RECORDING);
+        //get saveUri
+        TextView tv = (TextView)layoutView.findViewById(R.id.text_music);
+        tv.setText("Record");
+        //tv.setText(AudioAttach.getNameAudio(context,savedUri));
+    }
+
+    public void onClickDeleteAttach(View view){
+        TextView tv = (TextView)layoutView.findViewById(R.id.text_music);
+        tv.setText("");
+        Button play = (Button)layoutView.findViewById(R.id.button_play);
+        Button delete = (Button)layoutView.findViewById(R.id.button_delete_record);
+        play.setEnabled(false);
+        delete.setEnabled(false);
+        savedUri = null;
+    }
+
+    public void onClickFab(View view){
+        LayoutInflater li = LayoutInflater.from(context);
+        layoutView = li.inflate(R.layout.new_meeting_layout, null);
+
+        ad = new AlertDialog.Builder(context);
+        ad.setView(layoutView);
+        ad.setCancelable(false);
+
+        Button play = (Button)layoutView.findViewById(R.id.button_play);
+        Button delete = (Button)layoutView.findViewById(R.id.button_delete_record);
+        play.setEnabled(false);
+        delete.setEnabled(false);
+
+        al = ad.create();
+        al.show();
+
+    }
+
+    public void onClickCreate(View view){
+        Meeting meet = new Meeting();
+        EditText et;
+
+        et = (EditText)layoutView.findViewById(R.id.edit_name);
+        meet.setName(et.getText().toString());
+
+        et = (EditText)layoutView.findViewById(R.id.edit_description);
+        meet.setDescription(et.getText().toString());
+
+        DatePicker dp = (DatePicker)layoutView.findViewById(R.id.picker_date_start);
+        String month,day,year,dateStart,dateEnd;
+
+        if (String.valueOf(dp.getMonth() + 1).length() == 1)
+            month = "0" + String.valueOf(dp.getMonth() + 1);
+        else month = String.valueOf(dp.getMonth() + 1);
+        if (String.valueOf(dp.getDayOfMonth()).length() == 1)
+            day = "0" + String.valueOf(dp.getDayOfMonth());
+        else day = String.valueOf(dp.getDayOfMonth());
+        year = String.valueOf(dp.getYear());
+        dateStart = String.valueOf(day + "." + month + "." + year);
+        meet.setDateStart(dateStart);
+
+        dp = (DatePicker)layoutView.findViewById(R.id.picker_date_end);
+        if (String.valueOf(dp.getMonth() + 1).length() == 1)
+            month = "0" + String.valueOf(dp.getMonth() + 1);
+        else month = String.valueOf(dp.getMonth() + 1);
+        if (String.valueOf(dp.getDayOfMonth()).length() == 1)
+            day = "0" + String.valueOf(dp.getDayOfMonth());
+        else day = String.valueOf(dp.getDayOfMonth());
+        year = String.valueOf(dp.getYear());
+        dateEnd = String.valueOf(day + "." + month + "." + year);
+        meet.setDateEnd(dateEnd);
+
+        Spinner spinner = (Spinner)layoutView.findViewById(R.id.spinner_priority);
+        if(spinner.getSelectedItemPosition()==0)
+            meet.setPriority("Urgent");
+        else if(spinner.getSelectedItemPosition()==1)
+            meet.setPriority("Planned");
+        else meet.setPriority("Possible");
+
+        //устанавливаем свитч
+        List<String> p = new ArrayList<>();
+        p.add(participant.getLastName()+" "+participant.getFirstName()+" "+participant.getMiddleName());
+        meet.setParticipants(p);
+
+        //прикрепляем файл если есть
+        List<String> music = new ArrayList<>();
+        if(savedUri==null)
+            music.add("");
+        else {
+            music = AudioAttach.getStringArrFromAudio(context,savedUri);
+            music.add(0,AudioAttach.getNameAudio(context,savedUri));
+        }
+
+        meet.setFile(music);
+
+        if(meet.getName().equals(""))
+            meet.setName("Meeting");
+
+        if(compareDate(dateStart,dateEnd)==1)
+            Toast.makeText(context, "Date start more than date end!", Toast.LENGTH_LONG).show();
+        else{
+            //вызов сервиса
+            mSimpleFirebaseDatabaseReference.child("meetings")
+                    .push().setValue(meet);
+
+            al.cancel();
+            savedUri = null;
+        }
+    }
+
+
+
     public void playAudio(Context context){
         String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
         String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
@@ -355,11 +646,18 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     public void createMeeting(){
 
-        String audioStr = "";
+        List<String> audioStr = new ArrayList<>();
+        audioStr.add("");
         ////////////////////////////////////////////////////
+
+        List<String> ss = new ArrayList<>();
+        ss.add("V V V");
+        ss.add("T t O");
+        ss.add("S b D");
 
         Meeting meeting = new
                 Meeting("meeting", "text",getTodayDate(),getTodayDate(),"Planned",audioStr);
+        meeting.setParticipants(ss);
         mSimpleFirebaseDatabaseReference.child("meetings")
                 .push().setValue(meeting);
         mMeetingEditText.setText("");
@@ -373,8 +671,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == RQS_RECORDING) {
             savedUri = data.getData();
-            Toast.makeText(MainActivity.this,
-                    "Saved: " + savedUri.getPath(), Toast.LENGTH_LONG).show();
+            //Toast.makeText(MainActivity.this, "Saved: " + savedUri.getPath(), Toast.LENGTH_LONG).show();
         }
     }
 

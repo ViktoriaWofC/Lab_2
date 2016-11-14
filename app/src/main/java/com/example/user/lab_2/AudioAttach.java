@@ -14,6 +14,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by User on 08.11.2016.
@@ -40,13 +42,13 @@ public class AudioAttach {
         return  audio;
     }
 
-    public static String[] getStringArrFromAudio(Context context, Uri uri){
+    public static List<String> getStringArrFromAudio(Context context, Uri uri){
         String path = getRealPathFromURI(context ,uri);
 
         File file = new File(path);
         int audioLength = (int)(file.length());
         byte[] audio = new byte[audioLength];
-        String[] audioStr = new String[audioLength];
+        List<String> audioStr = new ArrayList<>();
 
         try {
             InputStream is = new FileInputStream(file);
@@ -59,7 +61,7 @@ public class AudioAttach {
         }
 
         for(int i = 0; i<audio.length;i++) {
-            audioStr[i] = Byte.toString(audio[i]);
+            audioStr.add(Byte.toString(audio[i]));
         }
 
         return  audioStr;
@@ -99,6 +101,43 @@ public class AudioAttach {
 
         for(int i = 0; i<audio.length;i++) {
             audio[i] = Byte.valueOf(audioStr[i]);
+        }
+
+        String exts = Environment.getExternalStorageDirectory().getAbsolutePath()+"/record";
+        if(isExternalStorageReadable()&& isExternalStorageWritable())
+        {
+            File f = new File(exts);
+            if(!f.exists())
+                f.mkdirs();
+
+            try {
+                OutputStream os = new FileOutputStream(exts + name);
+                os.write(audio, 0, audio.length);
+                os.close();
+
+                uri = Uri.fromFile(new File(exts + name));
+
+            } catch (Throwable t) {
+                Toast.makeText(context, "err 2!",
+                        Toast.LENGTH_LONG).show();
+                Log.e("teg","errr 2!",t);
+            }
+            return uri;
+        }
+        else {
+            Toast.makeText(context, R.string.noSD, Toast.LENGTH_LONG).show();
+            return uri;
+        }
+    }
+
+    public static Uri getAudioFromString(Context context, List<String> audioStr){
+        Uri uri = null;
+        String name = audioStr.get(audioStr.size()-1);
+        int audioLength = audioStr.size()-1;
+        byte[] audio = new byte[audioLength];
+
+        for(int i = 0; i<audio.length;i++) {
+            audio[i] = Byte.valueOf(audioStr.get(i));
         }
 
         String exts = Environment.getExternalStorageDirectory().getAbsolutePath()+"/record";

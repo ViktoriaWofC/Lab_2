@@ -1,7 +1,9 @@
 package com.example.user.lab_2;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by User on 18.10.2016.
@@ -12,14 +14,15 @@ public class Meeting {
     private String name;
     private String description;
     private String priority;//Urgent, Planned, Possible
-    private String file;
+    private List<String> file;
     private String dateStart;
     private String dateEnd;
+    private List<String> participants = new ArrayList<>();
 
     public Meeting() {
     }
 
-    public Meeting(String name, String description, String dateStart, String dateEnd,String priority, String file) {
+    public Meeting(String name, String description, String dateStart, String dateEnd,String priority, List<String> file) {
         this.name = name;
         this.description = description;
         this.dateStart = dateStart;
@@ -68,12 +71,20 @@ public class Meeting {
         this.priority = priority;
     }
 
-    public String getFile() {
+    public List<String> getFile() {
         return file;
     }
 
-    public void setFile(String file) {
+    public void setFile(List<String> file) {
         this.file = file;
+    }
+
+    public List<String> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(List<String> participants) {
+        this.participants = participants;
     }
 
 }
