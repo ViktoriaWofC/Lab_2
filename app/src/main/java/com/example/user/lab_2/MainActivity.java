@@ -74,6 +74,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private TextView userName;
     private TextView dateToday;
     private Button updateButton;
+    private EditText editSearch;
+    private Button searchButton;
     RecyclerView recyclerMeeting;
     /////
     //private GoogleApiClient mGoogleApiClient;
@@ -84,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private TextView t;
 
     List<Meeting> meetings = new ArrayList<>();
+    Meeting meeting;
     List<String> keys = new ArrayList<>();
     int key = 0;
     //List<Participant> participants = new ArrayList<>();
@@ -102,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     String stringFIO = "";
     Context context;
     String today = "";
+    String search = "";
 
     AlertDialog al;
     AlertDialog.Builder ad;
@@ -116,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         context = MainActivity.this;
         today = getTodayDate();
         login = getIntent().getStringExtra("login");
+        search = "";
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -136,26 +141,41 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             @Override
             public void onClick(View view) {
                 meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
+                editSearch.setText("");
                 mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
             }
         });
 
-        mSimpleFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
+        editSearch = (EditText)findViewById(R.id.edit_search);
+
+        searchButton = (Button)findViewById(R.id.search_buttonn);
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                search = editSearch.getText().toString();
+                //t.setText(search);
+                //service
+                MeetingSearchListener msl = new MeetingSearchListener(mSimpleFirebaseDatabaseReference);
+                mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(msl);
+            }
+        });
+
 
 
         //mMeetingRecyclerView.setLayoutManager(mLinearLayoutManager);
         //mMeetingRecyclerView.setAdapter(mFirebaseAdapter);
 
         t = (TextView)findViewById(R.id.testText);
+        t.setText(getTodayDate());
 
         participantListener = new ParticipantListener();
         //meetingListener = new MeetingListener();
 
 
-        t.setText(getTodayDate());
+
         ///////////////////////////////////////////////////////////
 
-
+        mSimpleFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
         //получаем логин из интента
         mSimpleFirebaseDatabaseReference.child("participant").addValueEventListener(participantListener);
 
@@ -183,7 +203,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         tb2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                playAudio(MainActivity.this);
+                AudioAttach.playAudio(context,savedUri);
+
 
             }
         });
@@ -217,6 +238,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             TextView tv;
             int position = this.getLayoutPosition();
             key = position;
+            t.setText(String.valueOf(keys.get(key)));
+
+            //meeting = meetings.get(position);
 
             ad = new AlertDialog.Builder(context);
             ad.setView(layoutView);
@@ -254,7 +278,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             if(parts.contains(fio))
                 sw.setChecked(true);
             else sw.setChecked(false);
+            //
 
+            savedUri = null;
             tv = (TextView)layoutView.findViewById(R.id.text_music);
             Button play = (Button)layoutView.findViewById(R.id.button_play);
             Button delete = (Button)layoutView.findViewById(R.id.button_delete_record);
@@ -262,7 +288,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 play.setEnabled(false);
                 delete.setEnabled(false);
                 tv.setText("");
-            }else tv.setText(meetings.get(position).getFile().get(meetings.get(position).getFile().size()-1));
+            }else {
+                tv.setText("Record");
+                List<String> audioStr = meetings.get(key).getFile();
+                //audioStr - from json
+                savedUri = AudioAttach.getAudioFromString(context,audioStr);
+            }
 
             al = ad.create();
             al.show();
@@ -382,6 +413,39 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         }
     }
 
+    public class MeetingSearchListener implements ValueEventListener {
+
+        private DatabaseReference ref;
+
+        public MeetingSearchListener(DatabaseReference r){
+            ref = r;
+        }
+
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            Meeting meet;
+            String discr = "";
+            meetings.clear();
+            for (DataSnapshot child : dataSnapshot.getChildren()) {
+                meet = (Meeting) child.getValue(Meeting.class);
+                discr = meet.getDescription();
+                if(discr.indexOf(search)!=-1){
+                    meetings.add(meet);
+                    keys.add(child.getKey());
+                }
+            }
+            //mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
+            ref.child("meetings").removeEventListener(this);
+            //
+            recyclerMeeting.setAdapter(new MeetingAdaper());
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    }
+
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
@@ -389,106 +453,82 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     public void onClickSave(View view){
 
+        //int key = meetings.indexOf(meeting);
+
         Switch sw = (Switch)layoutView.findViewById(R.id.switchs);
 
         String fio = participant.getLastName()+" "+participant.getFirstName()+" "+participant.getMiddleName();
         List<String> parts = new ArrayList<>();
         parts = meetings.get(key).getParticipants();
         if(!(parts.size()==1&&parts.get(0).equals(""))){
-
             if(!parts.contains(fio)&&sw.isChecked()) {
                 parts.add(fio);
-                //вызвать сервис
-                List<String> music = new ArrayList<>();
-                if(savedUri==null)
-                    music.add("");
-                else{
-                    music = AudioAttach.getStringArrFromAudio(context,savedUri);
-                    music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
-                }
-
-                Map<String,Object> m = new HashMap<String,Object>();
-                m.put("participants",parts);
-                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
-                m.put("file",music);
-                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
             }
             else if(parts.contains(fio)&&!sw.isChecked()){
                 parts.remove(fio);
                 if(parts.size()==0)
                     parts.add("");
-                //вызвать сервис
-                List<String> music = new ArrayList<>();
-                if(savedUri==null)
-                    music.add("");
-                else{
-                    music = AudioAttach.getStringArrFromAudio(context,savedUri);
-                    music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
-                }
-
-                Map<String,Object> m = new HashMap<String,Object>();
-                m.put("participants",parts);
-                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
-                m.put("file",music);
-                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
-            }
-            else{
-                //вызвать сервис
-                List<String> music = new ArrayList<>();
-                if(savedUri==null)
-                    music.add("");
-                else{
-                    music = AudioAttach.getStringArrFromAudio(context,savedUri);
-                    music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
-                }
-                Map<String,Object> m = new HashMap<String,Object>();
-                m.put("file",music);
-                mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
             }
         }
         else if(sw.isChecked()) {
             parts.remove("");
             parts.add(fio);
-            //вызвать сервис
-            List<String> music = new ArrayList<>();
+        }
+
+        //вызвать сервис
+        List<String> music = new ArrayList<>();
+
             if(savedUri==null)
                 music.add("");
             else{
                 music = AudioAttach.getStringArrFromAudio(context,savedUri);
-                music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
+                //music.add("Record");//music.add(music.size()-1,AudioAttach.getNameAudio(context,savedUri));
             }
-            Map<String,Object> m = new HashMap<String,Object>();
-            m.put("participants",parts);
-            mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
-            m.put("file",music);
-            mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
-        }
+            //music = AudioAttach.getStringArrFromAudio(context, savedUri);
+
+
+
+        Map<String,Object> m = new HashMap<String,Object>();
+        m.put("participants",parts);
+        mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
+        m.put("file",music);
+        mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).updateChildren(m);
 
 
         al.cancel();
         savedUri = null;
+
+        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+
     }
 
     public void onClickCancel(View view){
         al.cancel();
+        savedUri = null;
     }
 
     public void onClickDelete(View view){
         ///
+        //вызвать сервис
+
+        mSimpleFirebaseDatabaseReference.child("meetings").child(keys.get(key)).removeValue();
 
         al.cancel();
         savedUri = null;
 
+        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
     }
 
     public void onClickPlay(View view){
         //вызов сервиса
+        //int key = meetings.indexOf(meeting);
         if(savedUri!=null){
             AudioAttach.playAudio(context,savedUri);
         }
         else{
             List<String> audioStr = meetings.get(key).getFile();
             //audioStr - from json
+            String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
             savedUri = AudioAttach.getAudioFromString(context,audioStr);
             AudioAttach.playAudio(MainActivity.this,savedUri);
         }
@@ -588,7 +628,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             music.add("");
         else {
             music = AudioAttach.getStringArrFromAudio(context,savedUri);
-            music.add(0,AudioAttach.getNameAudio(context,savedUri));
         }
 
         meet.setFile(music);
@@ -605,17 +644,19 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
             al.cancel();
             savedUri = null;
+
+            mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
         }
     }
 
 
 
     public void playAudio(Context context){
-        String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
-        String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
+        //String name  = AudioAttach.getNameAudio(MainActivity.this,savedUri);
+        //String audioStr = AudioAttach.getStringFromAudio(MainActivity.this, savedUri);
         //audioStr - from json
-        Uri uri = AudioAttach.getAudioFromString(context,name,audioStr);
-        AudioAttach.playAudio(MainActivity.this,uri);
+        //Uri uri = AudioAttach.getAudioFromString(context,name,audioStr);
+        //AudioAttach.playAudio(MainActivity.this,uri);
     }
 
     public void checkParticipant(String name){
@@ -633,9 +674,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
         //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
 
-        createMeeting();
+        //createMeeting();
 
         //Date d = new Date();
+
 
     }
 

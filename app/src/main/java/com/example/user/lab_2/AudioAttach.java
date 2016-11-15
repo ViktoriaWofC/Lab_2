@@ -43,7 +43,13 @@ public class AudioAttach {
     }
 
     public static List<String> getStringArrFromAudio(Context context, Uri uri){
-        String path = getRealPathFromURI(context ,uri);
+        String path;
+        try{
+            path = getRealPathFromURI(context ,uri);
+        }
+        catch(Exception e){
+            path = Environment.getExternalStorageDirectory().getAbsolutePath()+"/record/Record.amr";
+        }
 
         File file = new File(path);
         int audioLength = (int)(file.length());
@@ -63,6 +69,8 @@ public class AudioAttach {
         for(int i = 0; i<audio.length;i++) {
             audioStr.add(Byte.toString(audio[i]));
         }
+
+        //audioStr.add("Record");
 
         return  audioStr;
 
@@ -132,8 +140,10 @@ public class AudioAttach {
 
     public static Uri getAudioFromString(Context context, List<String> audioStr){
         Uri uri = null;
-        String name = audioStr.get(audioStr.size()-1);
-        int audioLength = audioStr.size()-1;
+        //String name = audioStr.get(audioStr.size()-1);
+        //int audioLength = audioStr.size()-2;
+        String name = "Record.amr";
+        int audioLength = audioStr.size();
         byte[] audio = new byte[audioLength];
 
         for(int i = 0; i<audio.length;i++) {
@@ -148,11 +158,12 @@ public class AudioAttach {
                 f.mkdirs();
 
             try {
-                OutputStream os = new FileOutputStream(exts + name);
+                File file = new File(exts + "/"+name);
+                OutputStream os = new FileOutputStream(file);
                 os.write(audio, 0, audio.length);
                 os.close();
 
-                uri = Uri.fromFile(new File(exts + name));
+                uri = Uri.fromFile(file);
 
             } catch (Throwable t) {
                 Toast.makeText(context, "err 2!",
@@ -182,9 +193,9 @@ public class AudioAttach {
     public static String getRealPathFromURI(Context context, Uri contentUri) {
         Cursor cursor = null;
         try {
-            String[] proj = { MediaStore.Images.Media.DATA };
+            String[] proj = { MediaStore.Audio.Media.DATA };
             cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
             cursor.moveToFirst();
             return cursor.getString(column_index);
         } finally {

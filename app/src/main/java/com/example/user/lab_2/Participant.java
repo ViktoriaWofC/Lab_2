@@ -2,11 +2,13 @@ package com.example.user.lab_2;
 
 import com.google.firebase.database.IgnoreExtraProperties;
 
+import java.io.Serializable;
+
 /**
  * Created by User on 08.11.2016.
  */
 
-public class Participant {
+public class Participant implements Serializable {
 
     private String firstName;
     private String lastName;
@@ -77,7 +79,5 @@ public class Participant {
     public void setMiddleName(String name) {
         this.middleName = name;
     }
-
-
 
 }

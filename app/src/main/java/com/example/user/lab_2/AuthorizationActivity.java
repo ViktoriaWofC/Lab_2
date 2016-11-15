@@ -173,9 +173,13 @@ public class AuthorizationActivity extends AppCompatActivity {
     }
 
     public void getLoginPassword(){
-        databaseReference = FirebaseDatabase.getInstance().getReference();
-        participantListener = new ParticipantListener();
-        databaseReference.child("participant").addValueEventListener(participantListener);
+
+        intent = new Intent(context,FirebaseGetLoginPasswordService.class);
+        startService(intent);
+
+        //databaseReference = FirebaseDatabase.getInstance().getReference();
+        //participantListener = new ParticipantListener();
+        //databaseReference.child("participant").addValueEventListener(participantListener);
     }
 
     public class ParticipantListener implements ValueEventListener {
