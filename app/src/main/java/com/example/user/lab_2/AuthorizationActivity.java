@@ -1,8 +1,10 @@
 package com.example.user.lab_2;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -48,10 +50,10 @@ public class AuthorizationActivity extends AppCompatActivity {
     Intent intent;
     AlertDialog al;
     AlertDialog.Builder ad;
-    DatabaseReference databaseReference;
-    ParticipantListener participantListener;
     List<String> logins = new ArrayList<>();
     List<String> passwords = new ArrayList<>();
+
+    private MyBroadcastReceiver broadcast;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -61,8 +63,19 @@ public class AuthorizationActivity extends AppCompatActivity {
 
         getLoginPassword();
 
+        broadcast = new MyBroadcastReceiver();
+
+        // регистрируем BroadcastReceiver
+        IntentFilter intentFilter = new IntentFilter(
+                FirebaseGetLoginPasswordService.ACTION_MYINTENTSERVICE);
+        intentFilter.addCategory(Intent.CATEGORY_DEFAULT);
+        registerReceiver(broadcast, intentFilter);
+
+
+
         editLogin = (EditText)findViewById(R.id.edit_login);
         editPassword = (EditText)findViewById(R.id.edit_password);
+
 
         buttonLogin = (Button)findViewById(R.id.button_login);
         buttonLogin.setOnClickListener(new View.OnClickListener() {
@@ -177,30 +190,30 @@ public class AuthorizationActivity extends AppCompatActivity {
         intent = new Intent(context,FirebaseGetLoginPasswordService.class);
         startService(intent);
 
-        //databaseReference = FirebaseDatabase.getInstance().getReference();
-        //participantListener = new ParticipantListener();
-        //databaseReference.child("participant").addValueEventListener(participantListener);
+        //Toast.makeText(AuthorizationActivity.this, "Start service", Toast.LENGTH_LONG).show();
+
     }
 
-    public class ParticipantListener implements ValueEventListener {
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(broadcast);
+    }
+
+    public class MyBroadcastReceiver extends BroadcastReceiver {
 
         @Override
-        public void onDataChange(DataSnapshot dataSnapshot) {
-            Participant pat;
-
-            for (DataSnapshot child : dataSnapshot.getChildren()) {
-                pat = (Participant) child.getValue(Participant.class);
-                logins.add(pat.getLogin());
-                passwords.add(pat.getPassword());
+        public void onReceive(Context context, Intent intent) {
+            try{
+                logins = intent.getStringArrayListExtra(FirebaseGetLoginPasswordService.LOGIN);
+                passwords = intent.getStringArrayListExtra(FirebaseGetLoginPasswordService.PASS);
+                //Toast.makeText(AuthorizationActivity.this, "End service", Toast.LENGTH_LONG).show();
+            }catch(Exception e){
+                Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
             }
-            databaseReference.child("participant").removeEventListener(participantListener);
-        }
-
-        @Override
-        public void onCancelled(DatabaseError databaseError) {
-
         }
     }
+
 
     /*@Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {

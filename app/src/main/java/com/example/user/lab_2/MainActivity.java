@@ -1,9 +1,11 @@
 package com.example.user.lab_2;
 
 import android.app.IntentService;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -101,6 +103,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private ParticipantListener participantListener;
     private MeetingListener meetingListener;
 
+    private meetingBroadcastReceiver meetingBroadcast;
+    private meetingTenBroadcastReceiver meetingTenBroadcast;
+    private meetingSearchBroadcastReceiver searchBroadcast;
+
     String login = "";
     String stringFIO = "";
     Context context;
@@ -110,6 +116,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     AlertDialog al;
     AlertDialog.Builder ad;
     View layoutView;
+
+    public static final String SEARCH = "SEARCH";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -140,9 +148,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         updateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
+                updateMeetings();
                 editSearch.setText("");
-                mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+
+                //meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
+                //editSearch.setText("");
+                //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
             }
         });
 
@@ -153,10 +164,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             @Override
             public void onClick(View view) {
                 search = editSearch.getText().toString();
+                searchMeetings();
                 //t.setText(search);
                 //service
-                MeetingSearchListener msl = new MeetingSearchListener(mSimpleFirebaseDatabaseReference);
-                mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(msl);
+                //MeetingSearchListener msl = new MeetingSearchListener(mSimpleFirebaseDatabaseReference);
+                //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(msl);
             }
         });
 
@@ -182,8 +194,32 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         //startService(new Intent(this,FirebaseOnceUpdateMeetingService.class));
         //startService(new Intent(context,FirebaseUpdateMeetingService.class));
 
-        meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
-        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+        // регистрируем BroadcastReceiver
+        meetingBroadcast = new meetingBroadcastReceiver();
+        IntentFilter intentFilter1 = new IntentFilter(
+                UpdateMeetingService.ACTION_MYINTENTSERVICE);
+        intentFilter1.addCategory(Intent.CATEGORY_DEFAULT);
+        registerReceiver(meetingBroadcast, intentFilter1);
+
+        meetingTenBroadcast = new meetingTenBroadcastReceiver();
+        IntentFilter intentFilter2 = new IntentFilter(
+                UpdateMeetingTenService.ACTION_MYINTENTSERVICE);
+        intentFilter2.addCategory(Intent.CATEGORY_DEFAULT);
+        registerReceiver(meetingTenBroadcast, intentFilter2);
+
+        searchBroadcast = new meetingSearchBroadcastReceiver();
+        IntentFilter intentFilter3 = new IntentFilter(
+                SearchMeetingService.ACTION_MYINTENTSERVICE);
+        intentFilter3.addCategory(Intent.CATEGORY_DEFAULT);
+        registerReceiver(searchBroadcast, intentFilter3);
+
+
+        updateTenMeetings();
+
+        //Toast.makeText(AuthorizationActivity.this, "Start service", Toast.LENGTH_LONG).show();
+
+        //meetingListener = new MeetingListener(mSimpleFirebaseDatabaseReference);
+        //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
 
         recyclerMeeting = (RecyclerView)findViewById(R.id.recyclerMeeting);
         recyclerMeeting.setLayoutManager(new LinearLayoutManager(this));
@@ -210,6 +246,69 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         });
 
     }
+
+    public void updateMeetings(){
+        Intent intent = new Intent(context,UpdateMeetingService.class);
+        startService(intent);
+    }
+
+    public void updateTenMeetings(){
+        Intent intent = new Intent(context,UpdateMeetingTenService.class);
+        startService(intent);
+    }
+
+    public void searchMeetings(){
+        Intent intent = new Intent(context,SearchMeetingService.class);
+        intent.putExtra(SEARCH,search);
+        startService(intent);
+    }
+
+    public class meetingBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try{
+                meetings = (List<Meeting>) intent.getSerializableExtra(UpdateMeetingService.MEETING);
+                keys = intent.getStringArrayListExtra(UpdateMeetingService.KEYS);
+                recyclerMeeting.setAdapter(new MainActivity.MeetingAdaper());
+                Toast.makeText(MainActivity.this, "Meetings update", Toast.LENGTH_LONG).show();
+            }catch(Exception e){
+                Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    public class meetingTenBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try{
+                meetings = (List<Meeting>) intent.getSerializableExtra(UpdateMeetingTenService.MEETING);
+                keys = intent.getStringArrayListExtra(UpdateMeetingTenService.KEYS);
+                recyclerMeeting.setAdapter(new MainActivity.MeetingAdaper());
+                Toast.makeText(MainActivity.this, "Meetings update", Toast.LENGTH_LONG).show();
+            }catch(Exception e){
+                Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    public class meetingSearchBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try{
+                meetings = (List<Meeting>) intent.getSerializableExtra(SearchMeetingService.MEETING);
+                keys = intent.getStringArrayListExtra(SearchMeetingService.KEYS);
+                recyclerMeeting.setAdapter(new MainActivity.MeetingAdaper());
+                Toast.makeText(MainActivity.this, "Meetings search", Toast.LENGTH_LONG).show();
+            }catch(Exception e){
+                Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+
 
     public String getTodayDate(){
         Date date = new Date();
@@ -413,38 +512,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         }
     }
 
-    public class MeetingSearchListener implements ValueEventListener {
 
-        private DatabaseReference ref;
-
-        public MeetingSearchListener(DatabaseReference r){
-            ref = r;
-        }
-
-        @Override
-        public void onDataChange(DataSnapshot dataSnapshot) {
-            Meeting meet;
-            String discr = "";
-            meetings.clear();
-            for (DataSnapshot child : dataSnapshot.getChildren()) {
-                meet = (Meeting) child.getValue(Meeting.class);
-                discr = meet.getDescription();
-                if(discr.indexOf(search)!=-1){
-                    meetings.add(meet);
-                    keys.add(child.getKey());
-                }
-            }
-            //mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
-            ref.child("meetings").removeEventListener(this);
-            //
-            recyclerMeeting.setAdapter(new MeetingAdaper());
-        }
-
-        @Override
-        public void onCancelled(DatabaseError databaseError) {
-
-        }
-    }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -498,7 +566,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         al.cancel();
         savedUri = null;
 
-        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+        updateMeetings();
+        //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
 
     }
 
@@ -516,7 +585,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         al.cancel();
         savedUri = null;
 
-        mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+        updateMeetings();
+        //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
     }
 
     public void onClickPlay(View view){
@@ -645,7 +715,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             al.cancel();
             savedUri = null;
 
-            mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
+            updateMeetings();
+            //mSimpleFirebaseDatabaseReference.child("meetings").addValueEventListener(meetingListener);
         }
     }
 

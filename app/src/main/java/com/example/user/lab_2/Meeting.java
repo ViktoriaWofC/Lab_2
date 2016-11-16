@@ -1,6 +1,7 @@
 package com.example.user.lab_2;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.List;
  * Created by User on 18.10.2016.
  */
 
-public class Meeting {
+public class Meeting implements Serializable {
 
     private String name;
     private String description;

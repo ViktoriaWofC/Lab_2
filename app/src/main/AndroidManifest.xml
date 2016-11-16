@@ -42,6 +42,18 @@
         <service
             android:name=".FirebaseNewParticipantService"
             android:exported="false" />
+        <service
+            android:name=".FirebaseGetLoginPasswordService"
+            android:exported="false" />
+        <service
+            android:name=".UpdateMeetingService"
+            android:exported="false" />
+        <service
+            android:name=".UpdateMeetingTenService"
+            android:exported="false" />
+        <service
+            android:name=".SearchMeetingService"
+            android:exported="false" />
     </application>
 
 </manifest>
