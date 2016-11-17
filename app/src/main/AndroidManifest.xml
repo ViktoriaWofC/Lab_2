@@ -54,6 +54,21 @@
         <service
             android:name=".SearchMeetingService"
             android:exported="false" />
+        <service
+            android:name=".GetParticipantService"
+            android:exported="false" />
+        <service
+            android:name=".UpdateValueService"
+            android:exported="false" />
+        <service
+            android:name=".DeleteMeetingService"
+            android:exported="false" />
+        <service
+            android:name=".CreateMeetingService"
+            android:exported="false" />
+        <service
+            android:name=".PlayAudioService"
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -1,6 +1,9 @@
 package com.example.user.lab_2;
 
 import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -13,6 +16,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.Serializable;
+import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,36 +37,58 @@ public class UpdateMeetingTenService extends IntentService {
     List<String> keys = new ArrayList<>();
     String today = "";
     MeetingListener meetingListener;
+    MeetingNotificationListener notificationListener;
+    public static final String NETWORK = "NETWORK";
 
     public static final String ACTION_MYINTENTSERVICE = "com.example.user.lab_2upten.RESPONSE";
+    public static final String ACTION_MY = "com.example.user.lab_2not.RESPONSE";
     public static final String MEETING = "MEETING";
     public static final String KEYS = "KEYS";
+    private static final int NOTIFY_ID = 101;
+
+    boolean b = true;
 
     @Override
     protected void onHandleIntent(Intent intent) {
         today = getTodayDate();
 
         Intent responseIntent = new Intent();
-
         ConnectivityManager connMan = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo ni = connMan.getActiveNetworkInfo();
-        while(true) {
+
             if (ni != null && ni.isConnected()) {
                 databaseReference = FirebaseDatabase.getInstance().getReference();
+                notificationListener = new MeetingNotificationListener(databaseReference);
+                databaseReference.child("meetings").addValueEventListener(notificationListener);
                 meetingListener = new MeetingListener(databaseReference);
                 databaseReference.child("meetings").addValueEventListener(meetingListener);
+                while(true){
+                    try {
+                        Thread.sleep(600000); //600000
+                        sendIntent();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
             } else {
                 responseIntent.setAction(ACTION_MYINTENTSERVICE);
                 responseIntent.addCategory(Intent.CATEGORY_DEFAULT);
-                responseIntent.putExtra(KEYS, " ");
+                responseIntent.putExtra(NETWORK,"0");
                 sendBroadcast(responseIntent);
             }
-            try {
-                Thread.sleep(600000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+
+
+    }
+
+    public void sendIntent(){
+        Intent responseIntent = new Intent();
+        responseIntent.setAction(ACTION_MYINTENTSERVICE);
+        responseIntent.addCategory(Intent.CATEGORY_DEFAULT);
+        responseIntent.putExtra(MEETING, (Serializable) meetings);
+        responseIntent.putExtra(KEYS, (Serializable) keys);
+        responseIntent.putExtra(NETWORK,"1");
+        sendBroadcast(responseIntent);
     }
 
     public class MeetingListener implements ValueEventListener {
@@ -88,15 +114,59 @@ public class UpdateMeetingTenService extends IntentService {
                         keys.add(child.getKey());
                     }
             }
-            //mSimpleFirebaseDatabaseReference.child("meetings").removeEventListener(meetingListener);
-            ref.child("meetings").removeEventListener(this);
+            if(b == true){
+                b = false;
+                sendIntent();
+            }
 
             Intent responseIntent = new Intent();
-            responseIntent.setAction(ACTION_MYINTENTSERVICE);
+            responseIntent.setAction(ACTION_MY);
             responseIntent.addCategory(Intent.CATEGORY_DEFAULT);
-            responseIntent.putExtra(MEETING, (Serializable) meetings);
-            responseIntent.putExtra(KEYS, (Serializable) keys);
+            responseIntent.putExtra(NETWORK,"1");
             sendBroadcast(responseIntent);
+
+            //ref.child("meetings").removeEventListener(this);
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    }
+
+    public class MeetingNotificationListener implements ValueEventListener {
+
+        private DatabaseReference ref;
+
+        public MeetingNotificationListener(DatabaseReference r){
+            ref = r;
+        }
+
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+
+            Context context = getApplicationContext();
+            Intent notificationIntent = new Intent();//(context, MainActivity.class);
+            PendingIntent contentIntent = PendingIntent.getActivity(context,0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+            //Resources res = context.getResources();
+            Notification.Builder builder = new Notification.Builder(context);
+
+            builder.setContentIntent(contentIntent)
+                    .setTicker("Последнее китайское предупреждение!")
+                    .setWhen(System.currentTimeMillis())
+                    .setAutoCancel(true)
+                    //.setContentTitle(res.getString(R.string.notifytitle)) // Заголовок уведомления
+                    .setContentTitle("Meeting list is changed")
+                    //.setContentText(res.getString(R.string.notifytext))
+                    .setContentText(""); // Текст уведомления
+
+            Notification notification = builder.build();
+
+            NotificationManager notificationManager = (NotificationManager) context
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.notify(NOTIFY_ID, notification);
+
         }
 
         @Override

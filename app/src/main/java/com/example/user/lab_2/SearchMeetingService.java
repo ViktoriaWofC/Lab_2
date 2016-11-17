@@ -37,6 +37,7 @@ public class SearchMeetingService extends IntentService {
     public static final String ACTION_MYINTENTSERVICE = "com.example.user.lab_2search.RESPONSE";
     public static final String MEETING = "MEETING";
     public static final String KEYS = "KEYS";
+    public static final String NETWORK = "NETWORK";
 
     @Override
     protected void onHandleIntent(Intent intent) {
@@ -54,7 +55,7 @@ public class SearchMeetingService extends IntentService {
         else {
             responseIntent.setAction(ACTION_MYINTENTSERVICE);
             responseIntent.addCategory(Intent.CATEGORY_DEFAULT);
-            responseIntent.putExtra(KEYS, " ");
+            responseIntent.putExtra(NETWORK,"0");
             sendBroadcast(responseIntent);
             stopSelf();
         }
@@ -89,6 +90,7 @@ public class SearchMeetingService extends IntentService {
             responseIntent.addCategory(Intent.CATEGORY_DEFAULT);
             responseIntent.putExtra(MEETING, (Serializable) meetings);
             responseIntent.putExtra(KEYS, (Serializable) keys);
+            responseIntent.putExtra(NETWORK,"1");
             sendBroadcast(responseIntent);
             stopSelf();
         }

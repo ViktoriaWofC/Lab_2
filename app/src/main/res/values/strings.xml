@@ -29,8 +29,9 @@
     <string name="add_record">Add record</string>
     <string name="attachment">Attachment:</string>
     <string name="create">Create</string>
-    <string name="delete_record">Delete record</string>
+    <string name="delete_record">Delete</string>
     <string name="search_meetings">Search meetings</string>
+    <string name="user">User:</string>
 
     <string-array name="prioritylist">
         <item>Urgent</item>

@@ -87,15 +87,22 @@ public class AuthorizationActivity extends AppCompatActivity {
                 if(login.equals("")) Toast.makeText(context, "Login is NULL!",Toast.LENGTH_LONG).show();
                 else if(password.equals("")) Toast.makeText(context, "Password is NULL!",Toast.LENGTH_LONG).show();
                 else {
-                    int k = logins.indexOf(login);
+                    try {
+                        int k = logins.indexOf(login);
 
-                    if(k>=0)
-                        if (passwords.get(k).equals(password)) {
-                            intent = new Intent(context, MainActivity.class);
-                            intent.putExtra("login", login);
-                            startActivity(intent);
-                        } else Toast.makeText(AuthorizationActivity.this, "Password is not correct!", Toast.LENGTH_LONG).show();
-                    else Toast.makeText(AuthorizationActivity.this, "Login is not correct!", Toast.LENGTH_LONG).show();
+                        if (k >= 0)
+                            if (passwords.get(k).equals(password)) {
+                                intent = new Intent(context, MainActivity.class);
+                                intent.putExtra("login", login);
+                                startActivity(intent);
+                            } else
+                                Toast.makeText(AuthorizationActivity.this, "Password is not correct!", Toast.LENGTH_LONG).show();
+                        else
+                            Toast.makeText(AuthorizationActivity.this, "Login is not correct!", Toast.LENGTH_LONG).show();
+                    }catch (NullPointerException e){
+                        Toast.makeText(AuthorizationActivity.this, "Login is not download!", Toast.LENGTH_LONG).show();
+                        getLoginPassword();
+                    }
                 }
             }
         });
@@ -207,7 +214,7 @@ public class AuthorizationActivity extends AppCompatActivity {
             try{
                 logins = intent.getStringArrayListExtra(FirebaseGetLoginPasswordService.LOGIN);
                 passwords = intent.getStringArrayListExtra(FirebaseGetLoginPasswordService.PASS);
-                //Toast.makeText(AuthorizationActivity.this, "End service", Toast.LENGTH_LONG).show();
+                Toast.makeText(AuthorizationActivity.this, "Logins is download", Toast.LENGTH_LONG).show();
             }catch(Exception e){
                 Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
             }
