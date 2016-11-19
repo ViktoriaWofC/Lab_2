@@ -39,11 +39,13 @@ public class UpdateMeetingTenService extends IntentService {
     MeetingListener meetingListener;
     MeetingNotificationListener notificationListener;
     public static final String NETWORK = "NETWORK";
+    String login;
 
     public static final String ACTION_MYINTENTSERVICE = "com.example.user.lab_2upten.RESPONSE";
     public static final String ACTION_MY = "com.example.user.lab_2not.RESPONSE";
     public static final String MEETING = "MEETING";
     public static final String KEYS = "KEYS";
+    public static final String LOGIN = "LOGIN";
     private static final int NOTIFY_ID = 101;
 
     boolean b = true;
@@ -51,6 +53,7 @@ public class UpdateMeetingTenService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         today = getTodayDate();
+        login = intent.getStringExtra(LOGIN);
 
         Intent responseIntent = new Intent();
         ConnectivityManager connMan = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -123,6 +126,7 @@ public class UpdateMeetingTenService extends IntentService {
             responseIntent.setAction(ACTION_MY);
             responseIntent.addCategory(Intent.CATEGORY_DEFAULT);
             responseIntent.putExtra(NETWORK,"1");
+            responseIntent.putExtra(LOGIN,login);
             sendBroadcast(responseIntent);
 
             //ref.child("meetings").removeEventListener(this);

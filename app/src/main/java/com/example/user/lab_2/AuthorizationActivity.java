@@ -93,7 +93,7 @@ public class AuthorizationActivity extends AppCompatActivity {
                         if (k >= 0)
                             if (passwords.get(k).equals(password)) {
                                 intent = new Intent(context, MainActivity.class);
-                                intent.putExtra("login", login);
+                                intent.putExtra(MainActivity.LOGIN, login);
                                 startActivity(intent);
                             } else
                                 Toast.makeText(AuthorizationActivity.this, "Password is not correct!", Toast.LENGTH_LONG).show();

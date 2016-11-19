@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     public static final String SEARCH = "SEARCH";
     private static final int NOTIFY_ID = 101;
     public static final String NETWORK = "NETWORK";
+    static final String LOGIN = "LOGIN";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,7 +96,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         setSupportActionBar(toolbar);
         context = MainActivity.this;
         today = getTodayDate();
-        login = getIntent().getStringExtra("login");
+
+        login = getIntent().getStringExtra(LOGIN);
+
+        updateMeetings();
+
+        getParticipant();
+
         search = "";
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -115,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             @Override
             public void onClick(View view) {
                 updateMeetings();
+                updateButton.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                 editSearch.setText("");
             }
         });
@@ -130,7 +139,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             }
         });
 
-        getParticipant();
+        //login = getIntent().getStringExtra("login");
+
 
         // регистрируем BroadcastReceiver
         meetingBroadcast = new meetingBroadcastReceiver();
@@ -197,6 +207,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     public void updateTenMeetings(){
         Intent intent = new Intent(context,UpdateMeetingTenService.class);
+        intent.putExtra(LOGIN,login);
         startService(intent);
     }
 
@@ -327,6 +338,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         public void onReceive(Context context, Intent intent) {
             if(intent.getStringExtra(NETWORK).equals("1")){
                 createNotification();
+                login = intent.getStringExtra(LOGIN);
+                updateButton.setBackgroundColor(Color.BLUE);//getResources().getColor(R.color.colorPrimary));
             }else Toast.makeText(context, "Network not found!",Toast.LENGTH_LONG).show();
         }
     }
@@ -334,7 +347,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     public void createNotification(){
         Context context = getApplicationContext();
 
-        Intent notificationIntent = new Intent();//context, MainActivity.class);
+        Intent notificationIntent = new Intent(context, MainActivity.class);//new Intent();
+        notificationIntent.putExtra(LOGIN,login);
         PendingIntent contentIntent = PendingIntent.getActivity(context,
                 0, notificationIntent,
                 PendingIntent.FLAG_CANCEL_CURRENT);
@@ -700,5 +714,20 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 return super.onOptionsItemSelected(item);
 
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString(LOGIN,login);
+        super.onSaveInstanceState(outState);
+
+    }
+
+
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        updateMeetings();
     }
 }
